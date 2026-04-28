@@ -1,6 +1,8 @@
 "use client";
-import Script from "next/script";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
+
+const WASM_ASSET_VERSION = Date.now().toString();
+const WASM_SCRIPT_ID = "vtk-workbench-runtime-script";
 
 type VtkWasmModule = {
   FS: {
@@ -32,7 +34,8 @@ export default function Workbench() {
   const pendingXSFRef = useRef<{ text: string; fileName: string } | null>(null);
   const vtkModuleRef = useRef<VtkWasmModule | null>(null);
   const idbfsMountedRef = useRef(false);
-  const [ready, setReady] = useState(false);
+  const wasmInitStartedRef = useRef(false);
+  const handleLoadRef = useRef<() => void>(() => undefined);
 
   const handleContextMenu = (e: React.FormEvent<HTMLCanvasElement>) => {
     e.preventDefault(); // To prevent the browser context menu
@@ -75,20 +78,20 @@ export default function Workbench() {
     document.addEventListener("fullscreenchange", handleResize);
 
     const persistImGuiLayout = (reason: string) => {
-      const module = vtkModuleRef.current;
-      if (!module || !idbfsMountedRef.current) {
+      const wasmModule = vtkModuleRef.current;
+      if (!wasmModule || !idbfsMountedRef.current) {
         return;
       }
 
       try {
-        module.saveImGuiIniFile?.();
+        wasmModule.saveImGuiIniFile?.();
       } catch (err) {
         console.error(`Failed to save ImGui ini (${reason})`, err);
         return;
       }
 
-      if (typeof module.FS.syncfs === "function") {
-        module.FS.syncfs(false, (err?: unknown) => {
+      if (typeof wasmModule.FS.syncfs === "function") {
+        wasmModule.FS.syncfs(false, (err?: unknown) => {
           if (err) {
             console.error(`Failed to sync ImGui ini to IDBFS (${reason})`, err);
           }
@@ -203,6 +206,10 @@ export default function Workbench() {
   }, []);
 
   const handleLoad = () => {
+    if (wasmInitStartedRef.current) {
+      return;
+    }
+    wasmInitStartedRef.current = true;
     console.log("Success to find VTK wasm");
 
     const moduleConfig = {
@@ -289,18 +296,18 @@ export default function Workbench() {
       },
       locateFile: function (path: string) {
         if (path.endsWith(".wasm")) {
-          return `/wasm/${path}?v=${new Date().getTime()}`;
+          return `/wasm/${path}?v=${WASM_ASSET_VERSION}`;
         }
         return `/wasm/${path}`;
       },
     };
 
-    createViewer(moduleConfig).then((module) => {
+    createViewer(moduleConfig).then((wasmModule) => {
       console.log("VtkModule instance initialized.");
-      const vtkModule = module as unknown as VtkWasmModule;
+      const vtkModule = wasmModule as unknown as VtkWasmModule;
 
       // Export this module to global module (store as unknown)
-      (window as unknown as WindowWithVtk).VtkModule = module as unknown;
+      (window as unknown as WindowWithVtk).VtkModule = wasmModule as unknown;
       vtkModuleRef.current = vtkModule;
 
       // Mount IDBFS
@@ -328,9 +335,6 @@ export default function Workbench() {
 
       handleResize();
 
-      // Module ready
-      setReady(true);
-
       // 모듈 초기화 이후, 대기 중이던 XSF가 있으면 즉시 임포트
       if (pendingXSFRef.current) {
         try {
@@ -356,6 +360,9 @@ export default function Workbench() {
       } catch (err) {
         console.error("Failed to request XSF after init", err);
       }
+    }).catch((e) => {
+      wasmInitStartedRef.current = false;
+      console.error("Failed to initialize VTK wasm module", e);
     });
 
     //! Check browser support.
@@ -388,6 +395,72 @@ export default function Workbench() {
     }
   };
 
+  handleLoadRef.current = handleLoad;
+
+  useEffect(() => {
+    let disposed = false;
+
+    const triggerLoad = () => {
+      if (!disposed) {
+        handleLoadRef.current();
+      }
+    };
+
+    const handleScriptError = (event: Event) => {
+      if (!disposed) {
+        console.error("Failed to find VTK wasm", event);
+      }
+    };
+
+    const runtimeWindow = window as unknown as WindowWithVtk & {
+      createViewer?: unknown;
+    };
+
+    if (typeof runtimeWindow.createViewer === "function") {
+      triggerLoad();
+      return () => {
+        disposed = true;
+      };
+    }
+
+    const existingScript = document.getElementById(WASM_SCRIPT_ID) as HTMLScriptElement | null;
+    if (existingScript) {
+      if (existingScript.dataset.loaded === "true") {
+        triggerLoad();
+      } else {
+        existingScript.addEventListener("load", triggerLoad);
+        existingScript.addEventListener("error", handleScriptError);
+      }
+
+      return () => {
+        disposed = true;
+        existingScript.removeEventListener("load", triggerLoad);
+        existingScript.removeEventListener("error", handleScriptError);
+      };
+    }
+
+    const scriptEl = document.createElement("script");
+    scriptEl.id = WASM_SCRIPT_ID;
+    scriptEl.src = `/wasm/VTK-Workbench.js?v=${WASM_ASSET_VERSION}`;
+    scriptEl.async = true;
+    scriptEl.dataset.loaded = "false";
+
+    const handleScriptLoad = () => {
+      scriptEl.dataset.loaded = "true";
+      triggerLoad();
+    };
+
+    scriptEl.addEventListener("load", handleScriptLoad);
+    scriptEl.addEventListener("error", handleScriptError);
+    document.body.appendChild(scriptEl);
+
+    return () => {
+      disposed = true;
+      scriptEl.removeEventListener("load", handleScriptLoad);
+      scriptEl.removeEventListener("error", handleScriptError);
+    };
+  }, []);
+
   return (
     <div className="h-full">
       <div></div>
@@ -403,14 +476,6 @@ export default function Workbench() {
           minHeight: "300px"
         }}
       ></canvas>
-      <Script
-        src={`/wasm/VTK-Workbench.js?v=${new Date().getTime()}`}
-        strategy="afterInteractive"
-        onLoad={handleLoad}
-        onError={(e) => {
-          console.error("Failed to find VTK wasm", e);
-        }}
-      />
     </div>
   );
 }

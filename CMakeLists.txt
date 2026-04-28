@@ -57,83 +57,37 @@ set(VOROPP_LIBRARY "${VOROPP_LIB_DIR}/libvoro++.a")
 # set(SPGLIB_LIB_DIR "${SPGLIB_DIR}/lib")
 # set(SPGLIB_LIBRARY "${SPGLIB_LIB_DIR}/libsymspg.a")
 
-# Set source files
+# Source list (Phase 1 bootstrap)
+set(SOURCES_APP
+  webassembly/src/app/app.cpp
+  webassembly/src/app/legacy_app_compat.cpp
+  webassembly/src/app/app.h
+)
+
+set(SOURCES_CORE
+  webassembly/src/core/vtk/vtk_viewer.cpp
+  webassembly/src/core/vtk/vtk_viewer.h
+  webassembly/src/core/render/font_manager.cpp
+  webassembly/src/core/render/font_manager.h
+)
+
+set(SOURCES_FEATURES)
+
 add_executable(${PROJECT_NAME}
   webassembly/src/main.cpp
-  webassembly/src/legacy/app.cpp                     webassembly/src/legacy/app.h
-  webassembly/src/legacy/vtk_viewer.cpp              webassembly/src/legacy/vtk_viewer.h
-  webassembly/src/legacy/mouse_interactor_style.cpp  webassembly/src/legacy/mouse_interactor_style.h
-  webassembly/src/legacy/test_window.cpp             webassembly/src/legacy/test_window.h
-  webassembly/src/legacy/font_manager.cpp            webassembly/src/legacy/font_manager.h
-  webassembly/src/legacy/file_loader.cpp             webassembly/src/legacy/file_loader.h
   webassembly/src/bind_function.cpp
-  webassembly/src/legacy/lcrs_tree.cpp               webassembly/src/legacy/lcrs_tree.h
-  webassembly/src/legacy/mesh.cpp                    webassembly/src/legacy/mesh.h
-  webassembly/src/legacy/mesh_manager.cpp            webassembly/src/legacy/mesh_manager.h
-  webassembly/src/legacy/model_tree.cpp              webassembly/src/legacy/model_tree.h
-  webassembly/src/legacy/custom_ui.cpp               webassembly/src/legacy/custom_ui.h
-  webassembly/src/legacy/image.cpp                   webassembly/src/legacy/image.h
-  webassembly/src/legacy/texture.cpp                 webassembly/src/legacy/texture.h
-  webassembly/src/legacy/toolbar.cpp                 webassembly/src/legacy/toolbar.h
-  webassembly/src/legacy/mesh_detail.cpp             webassembly/src/legacy/mesh_detail.h
-  webassembly/src/legacy/unv_reader.cpp              webassembly/src/legacy/unv_reader.h
-  webassembly/src/legacy/common/string_utils.cpp     webassembly/src/legacy/common/string_utils.h
-  webassembly/src/legacy/common/colormap.cpp         webassembly/src/legacy/common/colormap.h
-  webassembly/src/legacy/mesh_group.cpp              webassembly/src/legacy/mesh_group.h
-  webassembly/src/legacy/mesh_group_detail.cpp       webassembly/src/legacy/mesh_group_detail.h
-
-  # Atoms
-  webassembly/src/legacy/atoms/atoms_template.cpp 
-  webassembly/src/legacy/atoms/atoms_template.h 
-  webassembly/src/legacy/atoms/infrastructure/batch_update_system.cpp 
-  webassembly/src/legacy/atoms/infrastructure/batch_update_system.h 
-  webassembly/src/legacy/atoms/infrastructure/bond_renderer.cpp
-  webassembly/src/legacy/atoms/infrastructure/bond_renderer.h
-  webassembly/src/legacy/atoms/infrastructure/vtk_renderer.cpp 
-  webassembly/src/legacy/atoms/infrastructure/vtk_renderer.h 
-  webassembly/src/legacy/atoms/infrastructure/file_io_manager.cpp 
-  webassembly/src/legacy/atoms/infrastructure/file_io_manager.h 
-  webassembly/src/legacy/atoms/infrastructure/bz_plot_layer.cpp 
-  webassembly/src/legacy/atoms/infrastructure/bz_plot_layer.h 
-  webassembly/src/legacy/atoms/domain/atom_manager.cpp 
-  webassembly/src/legacy/atoms/domain/atom_manager.h 
-  webassembly/src/legacy/atoms/domain/bond_manager.cpp 
-  webassembly/src/legacy/atoms/domain/bond_manager.h 
-  webassembly/src/legacy/atoms/domain/cell_manager.cpp 
-  webassembly/src/legacy/atoms/domain/cell_manager.h 
-  webassembly/src/legacy/atoms/domain/element_database.cpp 
-  webassembly/src/legacy/atoms/domain/element_database.h 
-  webassembly/src/legacy/atoms/domain/surrounding_atom_manager.cpp
-  webassembly/src/legacy/atoms/domain/surrounding_atom_manager.h
-  webassembly/src/legacy/atoms/domain/bz_plot.cpp 
-  webassembly/src/legacy/atoms/domain/bz_plot.h 
-  webassembly/src/legacy/atoms/domain/special_points.h 
-  webassembly/src/legacy/atoms/domain/crystal_system.cpp
-  webassembly/src/legacy/atoms/domain/crystal_system.h
-  webassembly/src/legacy/atoms/domain/crystal_structure.cpp
-  webassembly/src/legacy/atoms/domain/crystal_structure.h
-  webassembly/src/legacy/atoms/domain/color.h 
-  webassembly/src/legacy/atoms/ui/periodic_table_ui.cpp 
-  webassembly/src/legacy/atoms/ui/periodic_table_ui.h 
-  webassembly/src/legacy/atoms/ui/bravais_lattice_ui.cpp 
-  webassembly/src/legacy/atoms/ui/bravais_lattice_ui.h 
-  webassembly/src/legacy/atoms/ui/atom_editor_ui.cpp 
-  webassembly/src/legacy/atoms/ui/atom_editor_ui.h 
-  webassembly/src/legacy/atoms/ui/bond_ui.cpp
-  webassembly/src/legacy/atoms/ui/bond_ui.h
-  webassembly/src/legacy/atoms/ui/cell_info_ui.cpp 
-  webassembly/src/legacy/atoms/ui/cell_info_ui.h 
-  webassembly/src/legacy/atoms/ui/bz_plot_ui.cpp 
-  webassembly/src/legacy/atoms/ui/bz_plot_ui.h 
-  # webassembly/src/legacy/atoms/ui/atoms_template_main_window_ui.cpp 
-  # webassembly/src/legacy/atoms/ui/atoms_template_main_window_ui.h 
-  webassembly/src/legacy/atoms/ui/ui_color_utils.h
-    # Charge Density 관련 파일 추가
-  webassembly/src/legacy/atoms/ui/charge_density_ui.cpp
-  webassembly/src/legacy/atoms/infrastructure/chgcar_parser.cpp
-  webassembly/src/legacy/atoms/infrastructure/charge_density_renderer.cpp
-  webassembly/src/legacy/atoms/domain/charge_density.cpp
+  ${SOURCES_APP}
+  ${SOURCES_CORE}
+  ${SOURCES_FEATURES}
 )
+
+# Safety belt: fail configuration if any legacy source enters the target.
+get_target_property(_TARGET_SRCS ${PROJECT_NAME} SOURCES)
+foreach(_src IN LISTS _TARGET_SRCS)
+  if(_src MATCHES "webassembly/src/legacy/")
+    message(FATAL_ERROR "Phase 1 violation: legacy source in target: ${_src}")
+  endif()
+endforeach()
 
 # Add dependencies
 set(DEP_INCLUDE_DIR)
@@ -146,6 +100,8 @@ target_include_directories(${PROJECT_NAME}
   PRIVATE
     ${DEP_INCLUDE_DIR}
     ${VOROPP_INCLUDE_DIR}
+    ${CMAKE_SOURCE_DIR}/webassembly/src
+    ${CMAKE_SOURCE_DIR}/webassembly/src/legacy
     # ${SPGLIB_INCLUDE_DIR}
 )
 target_link_directories(${PROJECT_NAME}

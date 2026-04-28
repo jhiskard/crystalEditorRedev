@@ -2,8 +2,10 @@
 
 > 상위 문서: [`../05_redevelopment_plan.md`](../05_redevelopment_plan.md) §4 Phase 1
 > 선행 문서: [`./phase0_legacy_freeze.md`](./phase0_legacy_freeze.md) (rev. 2026-04-28)
-> 평가서:  [`./phase0_evaluation_2026-04-28.md`](./phase0_evaluation_2026-04-28.md)
+> 선행 평가서: [`./phase0_evaluation_2026-04-28.md`](./phase0_evaluation_2026-04-28.md)
+> 본 단계 평가서: [`./phase1_evaluation_2026-04-28.md`](./phase1_evaluation_2026-04-28.md)
 > 작성일: 2026-04-28
+> 최근 보강: 2026-04-28 (본 단계 평가서 §4.3/§5 권장사항 반영)
 > 대상 브랜치: `refactor/menu-aligned`
 > 단위 PR: 1 개
 > 예상 소요: 1~2 일 (Linux 측 코드 작성 + Windows 측 빌드 검증)
@@ -13,6 +15,7 @@
 | 일자 | 내용 |
 |---|---|
 | 2026-04-28 | 초안 작성 (Phase 0 통합 평가서의 §4.4 진입 후 첫 작업 항목을 본 문서로 확장) |
+| 2026-04-28 (보강) | Phase 1 평가서 §4.3 권장사항 반영: §1.2 회색지대 — 빌드 호환성 shim 신설, §4 Step 4 의존 사전 점검 절차 추가, §4 Step 4.5 compat shim 작성 절차 신설, §5 #8 SHA-identity 행을 "수용 가능 일탈" 로 격상, §6 리스크에 자동생성 데이터의 외부 의존(6.10) 추가, §10 후속 단계에 Phase 5 정리 항목 명시 |
 
 ---
 
@@ -30,9 +33,9 @@
 | 구분 | 항목 |
 |---|---|
 | **목표** | (a) `webassembly/src/{app, core/{vtk,io,data,scene,render,ui}, features}` 빈 디렉터리 트리 신설. (b) `app/app.{cpp,h}` 가 ImGui dockspace 한 장을 띄우는 최소 셸을 제공. (c) `core/vtk/vtk_viewer.{cpp,h}` 가 빈 VTK 렌더 윈도우를 셋업. (d) `main.cpp` 와 `bind_function.cpp` 가 `legacy/` include 0 개 + `app::App` 만 참조하도록 점진 교체. (e) `CMakeLists.txt` 가 **`legacy/` 를 빌드에서 제외** 하고 새 트리만 빌드. (f) `npm run build-wasm:debug` 통과 + 브라우저에서 빈 dockspace 가 보임 |
-| **비목표** | 메뉴 부활, VTK actor/렌더링 부활, 파일 로딩 부활, 18 항목 회귀 테스트 통과 (이는 Phase 3 진행 중 점진 회복), Embind 모든 export 부활, `features/` 안에 어떤 코드든 작성 (Phase 2~) |
+| **비목표** | 메뉴 부활, VTK actor/렌더링 부활, 파일 로딩 부활, 18 항목 회귀 테스트 통과 (이는 Phase 3 진행 중 점진 회복), Embind 모든 export 부활, `features/` 안에 어떤 코드든 작성 (Phase 2~), legacy/ 내부 코드 수정 (§1.2 회색지대 예외 참조) |
 
-> Phase 1 의 미덕: *"검토자가 git diff 를 보고 '새 폴더 + 새 파일 + CMake 변경 + main/bind 의 include 교체' 외에 의심할 게 없다"*. legacy/ 는 한 글자도 변경되지 않는다 (Phase 0 의 동결 원칙이 본 PR 에서도 유지됨).
+> Phase 1 의 미덕: *"검토자가 git diff 를 보고 '새 폴더 + 새 파일 + CMake 변경 + main/bind 의 include 교체 + (필요 시 §1.2 의 호환성 shim 한두 개)' 외에 의심할 게 없다"*. legacy/ 는 한 글자도 변경되지 않는다 (Phase 0 의 동결 원칙이 본 PR 에서도 유지됨).
 
 ### 1.1 비목표가 뜻하는 것 — 의도적인 기능 손실
 
@@ -51,6 +54,46 @@ Phase 1 직후의 사용자 경험:
 | 파일 로딩 (XSF / CHGCAR / UNV) | ✓ | ✗ | Phase 3.6 |
 
 → Phase 1 PR 의 검토자에게 **이 기능 손실은 의도된 것** 임을 PR 본문에서 명확히 알려야 한다.
+
+### 1.2 회색지대 — 빌드 호환성 shim (신설, 2026-04-28)
+
+다음 조건을 **전부** 만족하는 신규 파일/include path 추가는 비목표 위반으로 보지 **않는다**.
+
+1. `app/` 또는 동등한 새 트리 폴더 안에 들어가는 *얇은 파일*.
+2. **동작 0 변화** — 새 코드가 legacy 의 심볼을 호출할 때 그 호출을 새 트리의 등가 심볼로 redirect 하기만 함.
+3. 본체 줄 수가 **20 줄 이내** (#include 와 namespace 선언 포함).
+4. 본 shim 이 없으면 `npm run build-wasm:debug` 가 link error 로 실패.
+5. 본 shim 의 모든 진입점이 Phase 5 의 *legacy/ 삭제 정리 항목* 으로 명시 등록됨.
+
+본 회색지대는 **Phase 0 §1.1 의 "typo build-fix"** 와 평행 카테고리다. typo 는 legacy *내부* 의 1 글자 수정이고, 본 항목은 *새 트리 측* 의 얇은 redirect 파일이다. 둘 다 *동작 0 변화 + 빌드 통과를 위한 최소 변경* 이라는 정신을 공유한다.
+
+#### 1.2.1 알려진 사례 — `app/legacy_app_compat.cpp`
+
+`legacy/font_manager.cpp` (자동생성으로 알려진 폰트 데이터지만 실제로는 ImGui 폰트 등록 코드 + 폰트 데이터의 혼합) 가 `App::DevicePixelRatio()` (legacy 클래스의 정적 메서드) 를 24+ 회 호출한다. 그 호출을 새 트리의 `app::App::DevicePixelRatio()` 로 redirect 하는 10 줄짜리 shim:
+
+```cpp
+/**
+ * @file app/legacy_app_compat.cpp
+ * @brief Temporary compatibility shim for legacy-identical font manager usage.
+ */
+#include "../legacy/app.h"
+#include "app.h"
+
+double App::DevicePixelRatio() {
+    return static_cast<double>(app::App::DevicePixelRatio());
+}
+```
+
+본 shim 은 §4 Step 4.5 의 절차에 따라 작성하고, Phase 5 의 정리 대상에 명시 등록한다 (§10 후속 단계 참조).
+
+#### 1.2.2 회색지대를 허용하지 *않는* 변경
+
+다음은 §1.2 회색지대가 *아니다* — 비목표 위반이다.
+
+- legacy 내부 파일 수정 (§1.2 는 새 트리 측만 다룸).
+- shim 안에서 새 로직 작성 (단순 redirect 가 아닌 변환/계산 등).
+- 5 줄 이내가 아닌 typo build-fix (그건 Phase 0 §1.1 의 회색지대를 따르거나 Pre-Phase 0 PR 로 분리).
+- legacy/ 의 다수 클래스에 대한 shim N 개를 한 PR 에 묶음 — 이 경우 별도 *"호환성 PR"* 로 분리 검토.
 
 ---
 
@@ -254,21 +297,112 @@ legacy/vtk_viewer.cpp 에서 다음만 추출.
 
 ### Step 4 — `core/render/font_manager.cpp/h` 가져오기
 
-`legacy/font_manager.{cpp,h}` 는 자동생성된 폰트 데이터(33,885 줄)다. 본 단계에서는 두 가지 옵션 중 (a) 권장.
+`legacy/font_manager.{cpp,h}` 는 *"자동생성된 폰트 데이터(33,885 줄)"* 라고 알려져 있지만, **실제로는 폰트 바이너리 데이터 + ImGui 폰트 등록 코드의 혼합** 이다 (1차 시도 평가서 §1.3 참조). 등록 코드는 다음 외부 의존을 가진다:
 
-| 옵션 | 방법 | 장단 |
-|---|---|---|
-| (a) **physical copy (권장)** | `cp legacy/font_manager.{cpp,h} core/render/` | core/ 가 자체 완결됨. legacy/ 가 완전히 빌드에서 빠져도 폰트가 동작. 단점: 동일 데이터 2 부 보관 — repo 약 1.6 MB 증가 |
-| (b) CMake target 으로 legacy/font_manager.cpp 만 예외 컴파일 | CMakeLists 에서 legacy/ 전체를 제외하되 `font_manager.cpp` 한 줄만 명시 추가 | repo 사이즈 동일. 단점: legacy/ 가 *부분적으로* 살아있어 "legacy 빌드 제외" 라는 원칙이 깨짐 |
+```cpp
+ImFont* pImFont = io.Fonts->AddFontFromFileTTF(
+    "./resources/font/NotoSansKR-Light.ttf",
+    15.0f * App::DevicePixelRatio(),  // ← legacy 의 App 클래스 정적 메서드
+    ...);
+```
 
-본 계획서는 **(a) physical copy** 를 채택한다. Phase 5 에서 legacy/ 전체 삭제 시 자연스럽게 `core/render/font_manager.cpp` 한 부만 남는다.
+이 호출이 24+ 회 등장하므로 단순 copy 만으로 standalone 자기완결성을 얻기는 불가능하다. 따라서 본 단계는 **의존 사전 점검 → 호환성 결정 → 복사** 의 3 단계로 진행한다.
+
+#### 4.1 의존 사전 점검 (필수)
+
+가져올 파일이 외부 클래스/함수에 의존하는지 정량 확인.
+
+```bash
+cd webassembly/src
+echo "[A] App:: 호출 위치 (자동생성 데이터로 보이는 파일이 다른 클래스 호출 — 비-자기완결성 신호)"
+grep -nE "\bApp::" legacy/font_manager.cpp | head -5
+echo "[B] 외부 헤더 include 의 종류"
+grep -nE '^#include' legacy/font_manager.cpp
+echo "[C] 자동생성 마커 (있다면 부분 자동생성)"
+grep -nE "GENERATED|auto-generated|DO NOT EDIT" legacy/font_manager.cpp || echo "(no marker)"
+```
+
+판정 기준:
+- **자기완결 (외부 의존 0)**: 4.2(a) physical copy. byte-identical SHA 가 §5 검증의 #8 으로 통과.
+- **외부 의존 N≥1**: 4.2(c) 채택. **§5 #8 SHA-identity 행을 "수용 가능 일탈" 로 자동 격상** + Step 4.5 의 호환성 shim 작성.
+
+> font_manager.cpp 의 경우 [A] 결과가 24+ 줄이므로 **자기완결이 아니다 → 4.2(c) 채택**.
+
+#### 4.2 가져오기 옵션
+
+| 옵션 | 방법 | 적용 조건 | 장단 |
+|---|---|---|---|
+| (a) **physical copy (자기완결 시)** | `cp legacy/font_manager.{cpp,h} core/render/` | 4.1 의 [A] 결과가 0 줄 | core/ 가 자체 완결됨. byte-identical SHA 검증 가능 |
+| (b) CMake target 으로 legacy/font_manager.cpp 만 예외 컴파일 | legacy/ 전체 제외 + font_manager.cpp 만 명시 추가 | (어떤 경우든 권장 X) | "legacy 빌드 제외" 원칙이 깨짐 |
+| (c) **physical copy + 호환성 shim** (외부 의존 시, 권장) | `cp` + `app/legacy_app_compat.cpp` 신설 (§4.5) | 4.1 의 [A] 결과가 1+ 줄 | core/ 의 빌드가 새 트리만으로 닫힘. shim 1 개 추가 (§1.2 회색지대) |
+
+본 계획서는 **`legacy/font_manager.cpp` 의 외부 의존 검출 결과에 따라 (a) 또는 (c)** 를 자동 선택한다.
+
+#### 4.3 복사 명령
 
 ```bash
 cp webassembly/src/legacy/font_manager.cpp webassembly/src/core/render/
 cp webassembly/src/legacy/font_manager.h   webassembly/src/core/render/
 ```
 
-> 이 시점에 `core/render/font_manager.cpp` 와 `legacy/font_manager.cpp` 는 byte-identical 이다. SHA256 으로 확인 (Phase 0 §6 #8 의 baseline 과 동일).
+> 복사 직후 `sha256sum` 으로 두 파일이 일치함을 확인. 라인 수 변동도 0 이어야 함 (`wc -l` 비교).
+
+#### 4.4 판정 기록
+
+`legacy/font_manager.cpp` 가 4.2(c) 로 분류되면 본 단계의 PR 본문에 다음을 명시:
+
+> font_manager 는 외부 의존(`App::DevicePixelRatio` 24 호출) 으로 인해 자기완결이 아니다. §1.2 회색지대를 적용하여 `app/legacy_app_compat.cpp` shim 을 동반 추가. 두 변경(코어 복사 + shim) 을 별도 commit 으로 분리.
+
+### Step 4.5 — `app/legacy_app_compat.cpp` 호환성 shim 작성 (4.2(c) 채택 시)
+
+#### 4.5.1 파일 작성
+
+§1.2.1 의 형태를 그대로 사용:
+
+```cpp
+/**
+ * @file app/legacy_app_compat.cpp
+ * @brief Temporary compatibility shim for legacy-identical font manager usage.
+ *
+ * @details legacy 의 free-standing 정적 메서드(예: App::DevicePixelRatio) 호출을
+ *          새 트리의 등가 심볼(app::App::DevicePixelRatio) 로 redirect 한다.
+ *          본 shim 은 Phase 5 (legacy/ 삭제) 에서 함께 제거된다.
+ * @see     phase1_evaluation_2026-04-28.md §1.3
+ * @see     phase0_legacy_freeze.md §1.1 (typo build-fix 회색지대) — 평행 카테고리
+ */
+#include "../legacy/app.h"
+#include "app.h"
+
+double App::DevicePixelRatio() {
+    return static_cast<double>(app::App::DevicePixelRatio());
+}
+```
+
+#### 4.5.2 CMakeLists.txt 갱신
+
+`SOURCES_APP` 에 `app/legacy_app_compat.cpp` 한 줄 추가, `target_include_directories` 에 `webassembly/src/legacy` 한 줄 추가.
+
+```cmake
+set(SOURCES_APP
+    webassembly/src/app/app.cpp
+    webassembly/src/app/app.h
+    webassembly/src/app/legacy_app_compat.cpp   # §1.2 회색지대 shim
+)
+
+target_include_directories(${PROJECT_NAME}
+    PRIVATE
+        ${DEP_INCLUDE_DIR}
+        ${VOROPP_INCLUDE_DIR}
+        ${CMAKE_SOURCE_DIR}/webassembly/src
+        ${CMAKE_SOURCE_DIR}/webassembly/src/legacy   # shim 의 #include "../legacy/app.h" 해석용
+)
+```
+
+> `target_include_directories` 의 legacy 경로는 본 shim 만이 사용한다 — 다른 새 트리 파일이 legacy 헤더를 include 하는 것은 **여전히 §1 비목표 위반**.
+
+#### 4.5.3 §10 후속 단계 정리 등록
+
+본 shim 의 진입점 2 개 (`app/legacy_app_compat.cpp` 파일, CMake 의 legacy include path 한 줄) 를 §10.X 의 *Phase 5 정리 항목* 에 명시 등록.
 
 ### Step 5 — `main.cpp` 갱신
 
@@ -555,12 +689,13 @@ in Phases 3 and 4.
 |---|---|---|---|---|
 | 1 | `webassembly/src/` 직속 항목 | `ls webassembly/src` | `app  bind_function.cpp  core  features  legacy  main.cpp` (6) | 정적 |
 | 2 | `core/` 하위 폴더 6 개 | `ls webassembly/src/core` | `data io render scene ui vtk` | 정적 |
-| 3 | `app/` 의 파일 | `ls webassembly/src/app` | `app.cpp app.h` | 정적 |
+| 3 | `app/` 의 파일 | `ls webassembly/src/app` | (a) `app.cpp app.h` (자기완결 시) **또는** (b) `app.cpp app.h legacy_app_compat.cpp` (§1.2 회색지대 적용 시) | 정적 |
 | 4 | `core/vtk/` 의 파일 | `ls webassembly/src/core/vtk` | `vtk_viewer.cpp vtk_viewer.h` | 정적 |
 | 5 | `core/render/` 의 파일 | `ls webassembly/src/core/render` | `font_manager.cpp font_manager.h` | 정적 |
 | 6 | main / bind 의 legacy include 0 | `grep -nE '#include "legacy/' webassembly/src/main.cpp webassembly/src/bind_function.cpp` | 0 hit | 정적 |
 | 7 | CMake 빌드 안전벨트 존재 | `grep "Phase 1 violation" CMakeLists.txt` | 1 hit | 정적 |
-| 8 | font_manager 동일성 | `sha256sum webassembly/src/legacy/font_manager.cpp webassembly/src/core/render/font_manager.cpp` | 두 SHA 동일 | 정적 |
+| 8 | font_manager 동일성 (수용 가능 일탈) | `sha256sum webassembly/src/legacy/font_manager.cpp webassembly/src/core/render/font_manager.cpp` | (a) 두 SHA 동일 (자기완결 시) **또는** (b) §4.4 PR 본문에 일탈 사유(외부 의존) 가 명시되어 있음 + §10 정리 항목 등록됨 (수용 가능 일탈) | 정적 |
+| 8.1 | (8 이 (b) 수용 가능 일탈일 때) §1.2 회색지대 5 조건 충족 | shim 본체 줄 수 + 동작 0 변화 + Phase 5 등록 점검 | 5 조건 모두 ✓ | 정적 |
 | 9 | Debug 빌드 | `npm run build-wasm:debug` | exit 0 | 동적 |
 | 10 | Release 빌드 | `npm run build-wasm:release` | exit 0 | 동적 |
 | 11 | 빈 dockspace 표시 | `npm run dev` 후 브라우저 | dockspace 한 장 표시, 콘솔 에러 0 | 동적 |
@@ -582,6 +717,8 @@ in Phases 3 and 4.
 | 6.7 | font_manager 자동생성 데이터가 너무 커서 git diff 폭발 | 검토 부담 | PR 본문에 *"font_manager 는 legacy 와 byte-identical copy — diff 는 새 경로 1 개뿐"* 명시. SHA 첨부 |
 | 6.8 | VTK 라이브러리 링크 실패 (legacy 가 끌어오던 vtk module 이 사라져서) | 링크 에러 | CMakeLists 의 `find_package(VTK COMPONENTS ...)` 와 `target_link_libraries` 는 그대로 둠. Phase 1 의 core/vtk/vtk_viewer 가 이들을 동일하게 사용 |
 | 6.9 | 빈 dockspace 만 떠 있는 PR 을 본 검토자가 *"기능이 다 사라졌다"* 며 거절 | 머지 지연 | PR 본문 §1.1 의 *"의도적 기능 손실 표"* 를 그대로 인용. 메뉴/툴바/렌더 회복 단계(Phase 3~4) 를 명시 |
+| **6.10** | **자동생성 데이터로 알려진 파일이 외부 의존을 가짐** (1차 시도에서 실제 발생 — `font_manager.cpp` 가 `App::DevicePixelRatio` 24 호출) | physical copy 만으로 자기완결 못 함 → byte-identity 검증(§5 #8) 실패 | §4.1 의 의존 사전 점검 절차로 미리 검출. 검출되면 §4.2(c) + §4.5 의 호환성 shim 으로 처리. §1.2 회색지대 적용 |
+| **6.11** | **legacy/ 동결 원칙 위반** (Phase 0 의 *"legacy 한 글자도 변경 X"* 가 Phase 1 도중 깨짐) | Phase 0 baseline 무결성 손실. SHA 검증 실패 | Step 11 커밋 직전 `git diff --stat -- webassembly/src/legacy` 가 모두 0 줄 변경인지 확인. 변경 항목이 있다면 즉시 `git restore -- webassembly/src/legacy/<file>` 로 원복 |
 
 ---
 
