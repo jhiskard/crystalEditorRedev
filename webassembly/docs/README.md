@@ -26,7 +26,8 @@
 |---|---|
 | [phases/phase0_legacy_freeze.md](./phases/phase0_legacy_freeze.md) | Phase 0 — 현 코드 전체를 `webassembly/src/legacy/` 로 동결하는 단일 PR 의 파일 이동 매트릭스, CMake 패치, 검증/롤백 절차 |
 | [phases/phase0_evaluation_2026-04-28.md](./phases/phase0_evaluation_2026-04-28.md) | Phase 0 시도 평가 + Phase 1 진행가능 여부 통합 평가서 (2026-04-28) — 1차/2차 시도 회고 + 계획서 보강 효과 + Phase 1 진입 전 정리 3 항목. *(2026-04-28 작성된 두 개의 평가서를 단일 문서로 통합한 결과물)* |
-| _phase1 세부계획서 ~ phase6_ | _작성 예정 — Phase 별 세부계획서를 같은 폴더에 누적_ |
+| [phases/phase1_app_core_bootstrap.md](./phases/phase1_app_core_bootstrap.md) | Phase 1 — `app/` + `core/` 빈 셸 부트스트랩 세부계획서. 빈 dockspace 한 장만 띄우는 최소 빌드, legacy/ 빌드 제외, main/bind 의 stub 화, CMake 안전벨트, 검증 매트릭스 13 항목 |
+| _phase2 ~ phase6_ | _작성 예정 — Phase 별 세부계획서를 같은 폴더에 누적_ |
 
 ## 1. 한 줄 요약
 
