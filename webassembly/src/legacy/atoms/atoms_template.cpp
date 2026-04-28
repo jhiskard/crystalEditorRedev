@@ -3165,7 +3165,7 @@ void AtomsTemplate::createAtomSphere(
     
     SPDLOG_DEBUG("Created atom {} with radius {:.3f}, ID {}, type {} (unified system only)", 
                 symbolStr, adjustedRadius, atomId, 
-                atomType == AtomType::ORIGINAL ? "ORIGINAL" : "SURROUNDING");
+                atomType == atoms::domain::AtomType::ORIGINAL ? "ORIGINAL" : "SURROUNDING");
 }
 
 void AtomsTemplate::clearUnitCell() {

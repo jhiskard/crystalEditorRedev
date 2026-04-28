@@ -1,6 +1,6 @@
-#include "app.h"
-#include "file_loader.h"
-#include "mesh_manager.h"
+#include "legacy/app.h"
+#include "legacy/file_loader.h"
+#include "legacy/mesh_manager.h"
 
 // Emscripten
 #include <emscripten/bind.h>

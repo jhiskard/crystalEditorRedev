@@ -1,6 +1,6 @@
-#include "app.h"
-#include "font_manager.h"
-#include "mesh_manager.h"
+#include "legacy/app.h"
+#include "legacy/font_manager.h"
+#include "legacy/mesh_manager.h"
 
 // GLFW
 #define GLFW_INCLUDE_ES3    // Include OpenGL ES 3.0 headers
