@@ -117,9 +117,9 @@ webassembly/dependencies/
 *.lxx
 
 # Include compiled WASM files in public/wasm/ for deployment
-# public/wasm/*.js
-# public/wasm/*.wasm
-# public/wasm/*.data
+public/wasm/*.js
+public/wasm/*.wasm
+public/wasm/*.data
 
 # CMake build files
 CMakeCache.txt
@@ -194,7 +194,11 @@ xsf_examples/TABS_data/
 public/wasm.old2/
 
 # Local refactoring notes
-/refactoring_*.md
+refactoring_*.md
+webassembly/src/*.md
 
 # Example datasets
 /xsf_examples/
+
+package.json
+emsdk.bat

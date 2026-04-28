@@ -13,9 +13,9 @@
     "build-wasm:release": "emcmake cmake -GNinja -S. -Bwebassembly/build -DCMAKE_BUILD_TYPE=Release -DVTK_DIR=webassembly/dependencies/VTK/Release/lib/cmake/vtk && cmake --build webassembly/build --target install",
     "build:docker": "docker build -t vtk-workbench .",
     "build:production": "npm run clean && npm run build",
-    "clean": "npm run rm-build && npm run rm-wasm && rm -rf .next",
-    "rm-build": "rm -rf webassembly/build",
-    "rm-wasm": "rm -f public/wasm/*",
+    "clean": "npm run rm-build && npm run rm-wasm && if exist .next rmdir /s /q .next",
+    "rm-build": "if exist webassembly\\build rmdir /s /q webassembly\\build",
+    "rm-wasm": "if exist public\\wasm\\* del /f /q public\\wasm\\*",
     "health": "echo 'OK'",
     "lint": "next lint",
     "type-check": "tsc --noEmit"
