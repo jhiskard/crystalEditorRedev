@@ -60,15 +60,61 @@ set(VOROPP_LIBRARY "${VOROPP_LIB_DIR}/libvoro++.a")
 # Source list (Phase 1 bootstrap)
 set(SOURCES_APP
   webassembly/src/app/app.cpp
-  webassembly/src/app/legacy_app_compat.cpp
   webassembly/src/app/app.h
 )
 
 set(SOURCES_CORE
+  # vtk
   webassembly/src/core/vtk/vtk_viewer.cpp
   webassembly/src/core/vtk/vtk_viewer.h
+  webassembly/src/core/vtk/mouse_interactor.cpp
+  webassembly/src/core/vtk/mouse_interactor.h
+  webassembly/src/core/vtk/batch_update_system.cpp
+  webassembly/src/core/vtk/batch_update_system.h
+  # io
+  webassembly/src/core/io/file_dialog.cpp
+  webassembly/src/core/io/file_dialog.h
+  webassembly/src/core/io/format_registry.cpp
+  webassembly/src/core/io/format_registry.h
+  webassembly/src/core/io/xsf_parser.cpp
+  webassembly/src/core/io/xsf_parser.h
+  webassembly/src/core/io/chgcar_parser.cpp
+  webassembly/src/core/io/chgcar_parser.h
+  webassembly/src/core/io/rho_parser.cpp
+  webassembly/src/core/io/rho_parser.h
+  webassembly/src/core/io/unv_reader.cpp
+  webassembly/src/core/io/unv_reader.h
+  # data
+  webassembly/src/core/data/element_database.cpp
+  webassembly/src/core/data/element_database.h
+  webassembly/src/core/data/colormap.cpp
+  webassembly/src/core/data/colormap.h
+  webassembly/src/core/data/lcrs_tree.cpp
+  webassembly/src/core/data/lcrs_tree.h
+  webassembly/src/core/data/string_utils.cpp
+  webassembly/src/core/data/string_utils.h
+  webassembly/src/core/data/color.h
+  # scene
+  webassembly/src/core/scene/scene_state.cpp
+  webassembly/src/core/scene/scene_state.h
+  webassembly/src/core/scene/structure_registry.cpp
+  webassembly/src/core/scene/structure_registry.h
+  webassembly/src/core/scene/selection.cpp
+  webassembly/src/core/scene/selection.h
+  webassembly/src/core/scene/hover.cpp
+  webassembly/src/core/scene/hover.h
+  webassembly/src/core/scene/events.h
+  # render
   webassembly/src/core/render/font_manager.cpp
   webassembly/src/core/render/font_manager.h
+  webassembly/src/core/render/image.cpp
+  webassembly/src/core/render/image.h
+  webassembly/src/core/render/texture.cpp
+  webassembly/src/core/render/texture.h
+  # ui
+  webassembly/src/core/ui/widgets.cpp
+  webassembly/src/core/ui/widgets.h
+  webassembly/src/core/ui/ui_color_utils.h
 )
 
 set(SOURCES_FEATURES)

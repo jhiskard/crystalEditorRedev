@@ -1,22 +1,22 @@
-#pragma once
+﻿#pragma once
 
 #include "macro/singleton_macro.h"
 #include "enum/font_icon_enums.h"
 
 // Font icons
-#include "icon/FontAwesome6.h"
-#include "icon/FontAwesome6Brands.h"
-#include "icon/FontAwesome5.h"
-#include "icon/FontAwesome5Brands.h"
-#include "icon/FontAwesome4.h"
-#include "icon/CodIcons.h"
-#include "icon/FontAudio.h"
-#include "icon/ForkAwesome.h"
-#include "icon/Kenney.h"
-#include "icon/Lucide.h"
-#include "icon/MaterialDesign.h"
-#include "icon/MaterialDesignIcons.h"
-#include "icon/MaterialSymbols.h"
+#include "core/ui/icons/FontAwesome6.h"
+#include "core/ui/icons/FontAwesome6Brands.h"
+#include "core/ui/icons/FontAwesome5.h"
+#include "core/ui/icons/FontAwesome5Brands.h"
+#include "core/ui/icons/FontAwesome4.h"
+#include "core/ui/icons/CodIcons.h"
+#include "core/ui/icons/FontAudio.h"
+#include "core/ui/icons/ForkAwesome.h"
+#include "core/ui/icons/Kenney.h"
+#include "core/ui/icons/Lucide.h"
+#include "core/ui/icons/MaterialDesign.h"
+#include "core/ui/icons/MaterialDesignIcons.h"
+#include "core/ui/icons/MaterialSymbols.h"
 
 // Standard library
 #include <unordered_map>

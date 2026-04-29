@@ -28,7 +28,9 @@
 | [phases/phase0_evaluation_2026-04-28.md](./phases/phase0_evaluation_2026-04-28.md) | Phase 0 시도 평가 + Phase 1 진행가능 여부 통합 평가서 (2026-04-28) — 1차/2차 시도 회고 + 계획서 보강 효과 + Phase 1 진입 전 정리 3 항목. *(2026-04-28 작성된 두 개의 평가서를 단일 문서로 통합한 결과물)* |
 | [phases/phase1_app_core_bootstrap.md](./phases/phase1_app_core_bootstrap.md) | Phase 1 — `app/` + `core/` 빈 셸 부트스트랩 세부계획서. 빈 dockspace 한 장만 띄우는 최소 빌드, legacy/ 빌드 제외, main/bind 의 stub 화, CMake 안전벨트, 검증 매트릭스 13 항목 |
 | [phases/phase1_evaluation_2026-04-28.md](./phases/phase1_evaluation_2026-04-28.md) | Phase 1 수행 결과 평가서 (2026-04-28) — 13 항목 §5 검증 매트릭스 충족도 (9 통과 / 1 일탈 / 3 추정) + font_manager App 의존성 발견 + compat shim 회색지대 분류 + Phase 2 진입 전 정리 4 항목 |
-| _phase2 ~ phase6_ | _작성 예정 — Phase 별 세부계획서를 같은 폴더에 누적_ |
+| [phases/phase2_core_skeleton.md](./phases/phase2_core_skeleton.md) | Phase 2 — `core/` 인프라 골격 세부계획서. SceneState 추출 / file_dialog + format_registry / 6 sub-folder 약 48 신규 파일 / Phase 1 의 compat shim 정리 / PR 분할 (scene+data, io+vtk+render+ui) / 검증 매트릭스 18 항목 |
+| [phases/phase2_evaluation_2026-04-28.md](./phases/phase2_evaluation_2026-04-28.md) | Phase 2 수행 결과 평가서 (2026-04-28) — 사용자 2 차 답변 반영 후 **GO**: §5 검증 매트릭스 18 항목 (15 통과 / 0 일탈 / 2 추정 / 1 미수행), Step 1 청산 완료, legacy/ 동결 유지, debug+release 빌드 + 빈 dockspace 모두 통과. **Phase 3 진입 전 commit 정리 1 항목만** 남음 |
+| _phase3 ~ phase6_ | _작성 예정 — Phase 별 세부계획서를 같은 폴더에 누적_ |
 
 ## 1. 한 줄 요약
 
