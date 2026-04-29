@@ -4,7 +4,9 @@
  */
 #include "app.h"
 
+#include "../core/scene/scene_state.h"
 #include "../core/vtk/vtk_viewer.h"
+#include "../features/utilities/brillouin_zone/bz_menu.h"
 
 #define GLFW_INCLUDE_ES3
 #define GLFW_INCLUDE_GLEXT
@@ -26,6 +28,7 @@ namespace app {
 namespace {
 constexpr const char* kIdbfsMountPath = "/settings";
 constexpr const char* kImGuiIniPath = "/settings/imgui.ini";
+core::scene::SceneState g_sceneState;
 }
 
 App& App::Instance() {
@@ -80,6 +83,7 @@ int App::Init() {
     ImGui_ImplOpenGL3_Init("#version 300 es");
 
     core::vtk::VtkViewer::Instance().Init();
+    features::utilities::bz::InitOnce(g_sceneState);
 
     initialized_ = true;
     return 0;
@@ -189,12 +193,15 @@ void App::renderDockSpace() {
             ImGui::TextUnformatted("Features will return in later phases.");
             ImGui::EndMenu();
         }
+        features::utilities::bz::DrawMenu();
         ImGui::EndMenuBar();
     }
 
     const ImGuiID dockspaceId = ImGui::GetID("Phase1Dockspace");
     ImGui::DockSpace(dockspaceId, ImVec2(0.0f, 0.0f), ImGuiDockNodeFlags_None);
     ImGui::End();
+
+    features::utilities::bz::RenderWindows();
 }
 
 } // namespace app

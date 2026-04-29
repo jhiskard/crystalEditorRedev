@@ -117,7 +117,20 @@ set(SOURCES_CORE
   webassembly/src/core/ui/ui_color_utils.h
 )
 
-set(SOURCES_FEATURES)
+set(SOURCES_FEATURES
+  # Phase 3.1: Utilities / Brillouin Zone
+  webassembly/src/features/utilities/brillouin_zone/bz_plot.cpp
+  webassembly/src/features/utilities/brillouin_zone/bz_plot.h
+  webassembly/src/features/utilities/brillouin_zone/special_points.h
+  webassembly/src/features/utilities/brillouin_zone/bz_plot_layer.cpp
+  webassembly/src/features/utilities/brillouin_zone/bz_plot_layer.h
+  webassembly/src/features/utilities/brillouin_zone/bz_plot_controller.cpp
+  webassembly/src/features/utilities/brillouin_zone/bz_plot_controller.h
+  webassembly/src/features/utilities/brillouin_zone/bz_plot_ui.cpp
+  webassembly/src/features/utilities/brillouin_zone/bz_plot_ui.h
+  webassembly/src/features/utilities/brillouin_zone/bz_menu.cpp
+  webassembly/src/features/utilities/brillouin_zone/bz_menu.h
+)
 
 add_executable(${PROJECT_NAME}
   webassembly/src/main.cpp

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @file core/vtk/vtk_viewer.cpp
  * @brief Minimal VTK viewer shell for Phase 1.
  */
@@ -6,9 +6,12 @@
 
 #include <imgui.h>
 
+#include <vtkActor.h>
+#include <vtkActor2D.h>
+#include <vtkCamera.h>
 #include <vtkRenderWindow.h>
-#include <vtkRenderer.h>
 #include <vtkRenderWindowInteractor.h>
+#include <vtkRenderer.h>
 
 namespace core::vtk {
 
@@ -46,6 +49,56 @@ void VtkViewer::Resize(int w, int h) {
         return;
     }
     m_renderWindow->SetSize(w, h);
+}
+
+void VtkViewer::AddActor(vtkActor* actor) const {
+    if (m_renderer == nullptr || actor == nullptr) {
+        return;
+    }
+    m_renderer->AddActor(actor);
+}
+
+void VtkViewer::RemoveActor(vtkActor* actor) const {
+    if (m_renderer == nullptr || actor == nullptr) {
+        return;
+    }
+    m_renderer->RemoveActor(actor);
+}
+
+void VtkViewer::AddActor2D(vtkActor2D* actor) const {
+    if (m_renderer == nullptr || actor == nullptr) {
+        return;
+    }
+    m_renderer->AddActor2D(actor);
+}
+
+void VtkViewer::RemoveActor2D(vtkActor2D* actor) const {
+    if (m_renderer == nullptr || actor == nullptr) {
+        return;
+    }
+    m_renderer->RemoveActor2D(actor);
+}
+
+void VtkViewer::RequestRender() const {
+    if (m_renderWindow == nullptr) {
+        return;
+    }
+    m_renderWindow->Render();
+}
+
+void VtkViewer::FitViewToVisibleProps() const {
+    if (m_renderer == nullptr) {
+        return;
+    }
+    m_renderer->ResetCamera();
+    RequestRender();
+}
+
+vtkCamera* VtkViewer::GetActiveCamera() const {
+    if (m_renderer == nullptr) {
+        return nullptr;
+    }
+    return m_renderer->GetActiveCamera();
 }
 
 vtkRenderer* VtkViewer::GetRenderer() const {

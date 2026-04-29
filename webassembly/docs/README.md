@@ -30,7 +30,9 @@
 | [phases/phase1_evaluation_2026-04-28.md](./phases/phase1_evaluation_2026-04-28.md) | Phase 1 수행 결과 평가서 (2026-04-28) — 13 항목 §5 검증 매트릭스 충족도 (9 통과 / 1 일탈 / 3 추정) + font_manager App 의존성 발견 + compat shim 회색지대 분류 + Phase 2 진입 전 정리 4 항목 |
 | [phases/phase2_core_skeleton.md](./phases/phase2_core_skeleton.md) | Phase 2 — `core/` 인프라 골격 세부계획서. SceneState 추출 / file_dialog + format_registry / 6 sub-folder 약 48 신규 파일 / Phase 1 의 compat shim 정리 / PR 분할 (scene+data, io+vtk+render+ui) / 검증 매트릭스 18 항목 |
 | [phases/phase2_evaluation_2026-04-28.md](./phases/phase2_evaluation_2026-04-28.md) | Phase 2 수행 결과 평가서 (2026-04-28) — 사용자 2 차 답변 반영 후 **GO**: §5 검증 매트릭스 18 항목 (15 통과 / 0 일탈 / 2 추정 / 1 미수행), Step 1 청산 완료, legacy/ 동결 유지, debug+release 빌드 + 빈 dockspace 모두 통과. **Phase 3 진입 전 commit 정리 1 항목만** 남음 |
-| _phase3 ~ phase6_ | _작성 예정 — Phase 별 세부계획서를 같은 폴더에 누적_ |
+| [phases/phase3_1_utilities_brillouin_zone.md](./phases/phase3_1_utilities_brillouin_zone.md) | Phase 3.1 — **첫 feature 이식**: Utilities / Brillouin Zone 세부계획서. 4 layer 분리 (domain/renderer/ui/menu) + SceneState DI + 임시 메뉴 hook + features/ 패턴 시범. legacy 의 7 모듈 (~2,378 줄) 이식 + 신규 controller/menu 2 파일. 검증 매트릭스 18 항목 / 리스크 11 종 |
+| [phases/phase3_1_evaluation_2026-04-29.md](./phases/phase3_1_evaluation_2026-04-29.md) | Phase 3.1 수행 결과 평가서 (2026-04-29) — 사용자 2 차 답변 + 추가 작업 재측정 후 **GO**: §5 검증 매트릭스 18 항목 (14 통과 / 0 일탈 / 4 추정 / 0 실패), 1 차 *47% MVP 가설* 부정 (Voro++ 호출 4 곳 확인 — 완전 이식 + 코드 압축), debug + release 빌드 + 런타임 모두 통과. **Phase 3.2 진입 전 commit 1 항목만** 남음 |
+| _phase3.2 ~ phase6_ | _작성 예정 — Phase 별 세부계획서를 같은 폴더에 누적_ |
 
 ## 1. 한 줄 요약
 
