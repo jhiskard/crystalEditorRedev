@@ -150,6 +150,24 @@ set(SOURCES_FEATURES
   webassembly/src/features/data/slice/slice_controller.h
   webassembly/src/features/data/slice/slice_ui.cpp
   webassembly/src/features/data/slice/slice_ui.h
+
+  # Phase 3.3: Build / Periodic Table + Bravais Lattice
+  webassembly/src/features/build/build_menu.cpp
+  webassembly/src/features/build/build_menu.h
+  webassembly/src/features/build/periodic_table/periodic_table.cpp
+  webassembly/src/features/build/periodic_table/periodic_table.h
+  webassembly/src/features/build/periodic_table/periodic_table_controller.cpp
+  webassembly/src/features/build/periodic_table/periodic_table_controller.h
+  webassembly/src/features/build/periodic_table/periodic_table_ui.cpp
+  webassembly/src/features/build/periodic_table/periodic_table_ui.h
+  webassembly/src/features/build/bravais/crystal_structure.cpp
+  webassembly/src/features/build/bravais/crystal_structure.h
+  webassembly/src/features/build/bravais/crystal_system.cpp
+  webassembly/src/features/build/bravais/crystal_system.h
+  webassembly/src/features/build/bravais/bravais_controller.cpp
+  webassembly/src/features/build/bravais/bravais_controller.h
+  webassembly/src/features/build/bravais/bravais_lattice_ui.cpp
+  webassembly/src/features/build/bravais/bravais_lattice_ui.h
 )
 
 add_executable(${PROJECT_NAME}

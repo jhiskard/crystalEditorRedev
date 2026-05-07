@@ -6,6 +6,7 @@
 
 #include "../core/scene/scene_state.h"
 #include "../core/vtk/vtk_viewer.h"
+#include "../features/build/build_menu.h"
 #include "../features/data/data_menu.h"
 #include "../features/utilities/brillouin_zone/bz_menu.h"
 
@@ -86,6 +87,7 @@ int App::Init() {
     core::vtk::VtkViewer::Instance().Init();
     features::utilities::bz::InitOnce(g_sceneState);
     features::data::InitOnce(g_sceneState);
+    features::build::InitOnce(g_sceneState);
 
     initialized_ = true;
     return 0;
@@ -197,6 +199,7 @@ void App::renderDockSpace() {
         }
         features::utilities::bz::DrawMenu();
         features::data::DrawMenu();
+        features::build::DrawMenu();
         ImGui::EndMenuBar();
     }
 
@@ -206,6 +209,7 @@ void App::renderDockSpace() {
 
     features::utilities::bz::RenderWindows();
     features::data::RenderWindows();
+    features::build::RenderWindows();
 }
 
 } // namespace app

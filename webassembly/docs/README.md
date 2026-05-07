@@ -34,7 +34,8 @@
 | [phases/phase3_1_evaluation_2026-04-29.md](./phases/phase3_1_evaluation_2026-04-29.md) | Phase 3.1 수행 결과 평가서 (2026-04-29) — 사용자 2 차 답변 + 추가 작업 재측정 후 **GO**: §5 검증 매트릭스 18 항목 (14 통과 / 0 일탈 / 4 추정 / 0 실패), 1 차 *47% MVP 가설* 부정 (Voro++ 호출 4 곳 확인 — 완전 이식 + 코드 압축), debug + release 빌드 + 런타임 모두 통과. **Phase 3.2 진입 전 commit 1 항목만** 남음 |
 | [phases/phase3_2_data_charge_density.md](./phases/phase3_2_data_charge_density.md) | Phase 3.2 — Data / Isosurface·Surface·Volumetric·Plane (4 항목 → 2 sub-folder 분기) 세부계획서. **`core/io/format_registry::Register` 의 첫 사용자** — Phase 2 인프라 첫 검증. legacy 4,485 줄 → 약 3,040 줄 (UI 보존으로 보수적 압축). **§1.4 상위 §6.0.1 의 *legacy UI 1:1 보존 원칙* 본 단계 적용** + side-by-side 스크린샷 + S1/S2/S3 시나리오 검증. 매트릭스 23 / 리스크 12 |
 | [phases/phase3_2_evaluation_2026-05-06.md](./phases/phase3_2_evaluation_2026-05-06.md) | Phase 3.2 수행 결과 평가서 (2026-05-06) — **GO**: §5 검증 매트릭스 23 항목 (22 통과 / 0 일탈 / 1 미명시 / 0 실패), 신규 17 파일 / 2,580 줄 (legacy 대비 57.5% 압축). `format_registry::RegisterDefaults` 호출로 Phase 2 인프라 첫 검증 성공. **§1.4 UI 보존 정책 첫 적용 + 통과** (사용자 답변 #20 Side-by-side, #21 시나리오 S1/S2/S3). controller 풍부도 폭발적 (CD 338%, Slice 217%). Phase 3.3 진입 전 commit 1 항목만 남음 |
-| _phase3.3 ~ phase6_ | _작성 예정 — Phase 별 세부계획서를 같은 폴더에 누적_ |
+| [phases/phase3_3_build_periodic_bravais.md](./phases/phase3_3_build_periodic_bravais.md) | Phase 3.3 — Build / Periodic Table·Bravais Lattice (2 항목 → 2 sub-folder) 세부계획서. **`core/data/element_database::Instance` 의 첫 외부 사용자** — Phase 2 인프라 두 번째 검증. **EventBus 첫 emit** (`onAtomsChanged` + `onStructureAdded`). legacy 3,075 줄 → 약 2,160 줄 (UI 보존 + 데이터/알고리즘 비중 커서 보수적 압축 70%). **§1.4 UI 1:1 보존 적용** — 7×18 원소 표 + Jmol/CPK 색 + 14 Bravais lattice + 7 Crystal System 그룹 + S1~S4 시나리오. 신규 16 파일. 검증 매트릭스 24 / 리스크 11 |
+| _phase3.4 ~ phase6_ | _작성 예정 — Phase 별 세부계획서를 같은 폴더에 누적_ |
 
 ## 1. 한 줄 요약
 

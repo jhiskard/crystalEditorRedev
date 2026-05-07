@@ -9,6 +9,8 @@ yarn-error.log*
 .next/
 out/
 build/
+!webassembly/src/features/build/
+!webassembly/src/features/build/**
 dist/
 
 # Runtime data
