@@ -130,6 +130,26 @@ set(SOURCES_FEATURES
   webassembly/src/features/utilities/brillouin_zone/bz_plot_ui.h
   webassembly/src/features/utilities/brillouin_zone/bz_menu.cpp
   webassembly/src/features/utilities/brillouin_zone/bz_menu.h
+
+  # Phase 3.2: Data / Charge Density + Slice
+  webassembly/src/features/data/data_menu.cpp
+  webassembly/src/features/data/data_menu.h
+  webassembly/src/features/data/charge_density/charge_density.cpp
+  webassembly/src/features/data/charge_density/charge_density.h
+  webassembly/src/features/data/charge_density/isosurface_renderer.cpp
+  webassembly/src/features/data/charge_density/isosurface_renderer.h
+  webassembly/src/features/data/charge_density/volume_renderer.cpp
+  webassembly/src/features/data/charge_density/volume_renderer.h
+  webassembly/src/features/data/charge_density/charge_density_controller.cpp
+  webassembly/src/features/data/charge_density/charge_density_controller.h
+  webassembly/src/features/data/charge_density/charge_density_ui.cpp
+  webassembly/src/features/data/charge_density/charge_density_ui.h
+  webassembly/src/features/data/slice/slice_renderer.cpp
+  webassembly/src/features/data/slice/slice_renderer.h
+  webassembly/src/features/data/slice/slice_controller.cpp
+  webassembly/src/features/data/slice/slice_controller.h
+  webassembly/src/features/data/slice/slice_ui.cpp
+  webassembly/src/features/data/slice/slice_ui.h
 )
 
 add_executable(${PROJECT_NAME}
