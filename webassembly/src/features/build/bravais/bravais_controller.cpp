@@ -51,6 +51,8 @@ void BravaisController::Apply(
     params_ = params;
     preserveExistingAtoms_ = preserveExistingAtoms;
 
+    const bool hadActiveStructure =
+        (scene_.currentStructureId >= 0) && scene_.structures.Exists(scene_.currentStructureId);
     const int32_t structureId = EnsureActiveStructure();
     core::scene::StructureRecord& record = scene_.structureRecords[structureId];
 
@@ -93,6 +95,10 @@ void BravaisController::Apply(
             atom.cartesian = periodic_table::FractionalToCartesian(fracPos, record.cell.matrix);
             record.atoms.push_back(atom);
         }
+    }
+
+    if (!hadActiveStructure) {
+        scene_.events.onStructureAdded.Emit(core::scene::StructureAddedEvent{structureId});
     }
     scene_.events.onCellChanged.Emit(core::scene::CellChangedEvent{structureId});
     scene_.events.onAtomsChanged.Emit(core::scene::AtomsChangedEvent{structureId});

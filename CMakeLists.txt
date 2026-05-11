@@ -168,6 +168,40 @@ set(SOURCES_FEATURES
   webassembly/src/features/build/bravais/bravais_controller.h
   webassembly/src/features/build/bravais/bravais_lattice_ui.cpp
   webassembly/src/features/build/bravais/bravais_lattice_ui.h
+
+  # Phase 3.4.1: Edit / Cell
+  webassembly/src/features/edit/edit_menu.cpp
+  webassembly/src/features/edit/edit_menu.h
+  webassembly/src/features/edit/cell/cell_manager.cpp
+  webassembly/src/features/edit/cell/cell_manager.h
+  webassembly/src/features/edit/cell/cell_renderer.cpp
+  webassembly/src/features/edit/cell/cell_renderer.h
+  webassembly/src/features/edit/cell/cell_controller.cpp
+  webassembly/src/features/edit/cell/cell_controller.h
+  webassembly/src/features/edit/cell/cell_info_ui.cpp
+  webassembly/src/features/edit/cell/cell_info_ui.h
+
+  # Phase 3.4.2: Edit / Atoms
+  webassembly/src/features/edit/atoms/atom_manager.cpp
+  webassembly/src/features/edit/atoms/atom_manager.h
+  webassembly/src/features/edit/atoms/surrounding_atom_manager.cpp
+  webassembly/src/features/edit/atoms/surrounding_atom_manager.h
+  webassembly/src/features/edit/atoms/atom_renderer.cpp
+  webassembly/src/features/edit/atoms/atom_renderer.h
+  webassembly/src/features/edit/atoms/atoms_controller.cpp
+  webassembly/src/features/edit/atoms/atoms_controller.h
+  webassembly/src/features/edit/atoms/atom_editor_ui.cpp
+  webassembly/src/features/edit/atoms/atom_editor_ui.h
+
+  # Phase 3.4.3: Edit / Bonds
+  webassembly/src/features/edit/bonds/bond_manager.cpp
+  webassembly/src/features/edit/bonds/bond_manager.h
+  webassembly/src/features/edit/bonds/bond_renderer.cpp
+  webassembly/src/features/edit/bonds/bond_renderer.h
+  webassembly/src/features/edit/bonds/bonds_controller.cpp
+  webassembly/src/features/edit/bonds/bonds_controller.h
+  webassembly/src/features/edit/bonds/bond_ui.cpp
+  webassembly/src/features/edit/bonds/bond_ui.h
 )
 
 add_executable(${PROJECT_NAME}

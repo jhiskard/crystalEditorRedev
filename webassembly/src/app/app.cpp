@@ -5,9 +5,11 @@
 #include "app.h"
 
 #include "../core/scene/scene_state.h"
+#include "../core/vtk/mouse_interactor.h"
 #include "../core/vtk/vtk_viewer.h"
 #include "../features/build/build_menu.h"
 #include "../features/data/data_menu.h"
+#include "../features/edit/edit_menu.h"
 #include "../features/utilities/brillouin_zone/bz_menu.h"
 
 #define GLFW_INCLUDE_ES3
@@ -21,6 +23,8 @@
 #include <emscripten/emscripten.h>
 #include <emscripten/html5.h>
 
+#include <vtkRenderWindowInteractor.h>
+
 #include <fstream>
 #include <iterator>
 #include <string>
@@ -31,6 +35,7 @@ namespace {
 constexpr const char* kIdbfsMountPath = "/settings";
 constexpr const char* kImGuiIniPath = "/settings/imgui.ini";
 core::scene::SceneState g_sceneState;
+vtkSmartPointer<core::vtk::MouseInteractor> g_mouseInteractor;
 }
 
 App& App::Instance() {
@@ -85,9 +90,29 @@ int App::Init() {
     ImGui_ImplOpenGL3_Init("#version 300 es");
 
     core::vtk::VtkViewer::Instance().Init();
+    if (g_mouseInteractor == nullptr) {
+        g_mouseInteractor = vtkSmartPointer<core::vtk::MouseInteractor>::New();
+        if (g_mouseInteractor == nullptr) {
+            return 3;
+        }
+    }
+
+    g_mouseInteractor->SetEventBus(&g_sceneState.events);
+    g_mouseInteractor->SetRenderRequestHandler([]() {
+        core::vtk::VtkViewer::Instance().RequestRender();
+    });
+    g_mouseInteractor->SetActiveStructureId(g_sceneState.currentStructureId);
+    g_mouseInteractor->SetDefaultRenderer(core::vtk::VtkViewer::Instance().GetRenderer());
+
+    if (vtkRenderWindowInteractor* interactor = core::vtk::VtkViewer::Instance().GetInteractor();
+        interactor != nullptr) {
+        interactor->SetInteractorStyle(g_mouseInteractor.GetPointer());
+    }
+
     features::utilities::bz::InitOnce(g_sceneState);
     features::data::InitOnce(g_sceneState);
     features::build::InitOnce(g_sceneState);
+    features::edit::InitOnce(g_sceneState, *g_mouseInteractor);
 
     initialized_ = true;
     return 0;
@@ -99,6 +124,9 @@ void App::RenderFrame() {
     }
 
     glfwPollEvents();
+    if (g_mouseInteractor != nullptr) {
+        g_mouseInteractor->SetActiveStructureId(g_sceneState.currentStructureId);
+    }
     if (glfwGetWindowAttrib(window_, GLFW_ICONIFIED) != 0) {
         ImGui_ImplGlfw_Sleep(10);
         return;
@@ -200,6 +228,7 @@ void App::renderDockSpace() {
         features::utilities::bz::DrawMenu();
         features::data::DrawMenu();
         features::build::DrawMenu();
+        features::edit::DrawMenu();
         ImGui::EndMenuBar();
     }
 
@@ -210,6 +239,7 @@ void App::renderDockSpace() {
     features::utilities::bz::RenderWindows();
     features::data::RenderWindows();
     features::build::RenderWindows();
+    features::edit::RenderWindows();
 }
 
 } // namespace app
