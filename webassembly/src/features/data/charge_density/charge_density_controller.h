@@ -33,6 +33,9 @@ public:
     bool LoadSampleData();
     void ClearData();
     void SetData(std::unique_ptr<ChargeDensity> data);
+    void SetNamedData(const std::string& name, std::unique_ptr<ChargeDensity> data);
+    void SetNamedDataEntries(std::vector<std::pair<std::string, std::unique_ptr<ChargeDensity>>> entries);
+    std::unique_ptr<ChargeDensity> CloneActiveData() const;
 
     bool HasData() const { return data_ != nullptr; }
     Mode CurrentMode() const { return mode_; }

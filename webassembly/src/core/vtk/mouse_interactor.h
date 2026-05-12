@@ -18,13 +18,22 @@ public:
     void SetActiveStructureId(int32_t structureId);
 
     void OnLeftButtonDown() override;
+    void OnMouseMove() override;
+    void OnLeftButtonUp() override;
     void OnMouseWheelForward() override;
     void OnMouseWheelBackward() override;
 
 private:
+    void emitPickOrEmptyClick(int x, int y);
+
     core::scene::EventBus* eventBus_ = nullptr;
     std::function<void()> requestRender_;
     int32_t activeStructureId_ = -1;
+    bool leftButtonDown_ = false;
+    bool dragging_ = false;
+    bool additiveDrag_ = false;
+    int dragStartX_ = 0;
+    int dragStartY_ = 0;
 };
 
 } // namespace core::vtk

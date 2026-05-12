@@ -202,6 +202,39 @@ set(SOURCES_FEATURES
   webassembly/src/features/edit/bonds/bonds_controller.h
   webassembly/src/features/edit/bonds/bond_ui.cpp
   webassembly/src/features/edit/bonds/bond_ui.h
+
+  # Phase 3.5: Measurement
+  webassembly/src/features/measurement/measurement_menu.cpp
+  webassembly/src/features/measurement/measurement_menu.h
+  webassembly/src/features/measurement/measurement_mode.cpp
+  webassembly/src/features/measurement/measurement_mode.h
+  webassembly/src/features/measurement/measurement_store.cpp
+  webassembly/src/features/measurement/measurement_store.h
+  webassembly/src/features/measurement/measurement_controller.cpp
+  webassembly/src/features/measurement/measurement_controller.h
+  webassembly/src/features/measurement/measurement_overlay_ui.cpp
+  webassembly/src/features/measurement/measurement_overlay_ui.h
+  webassembly/src/features/measurement/distance.cpp
+  webassembly/src/features/measurement/distance.h
+  webassembly/src/features/measurement/angle.cpp
+  webassembly/src/features/measurement/angle.h
+  webassembly/src/features/measurement/dihedral.cpp
+  webassembly/src/features/measurement/dihedral.h
+  webassembly/src/features/measurement/center.cpp
+  webassembly/src/features/measurement/center.h
+
+  # Phase 3.6: File / Open Structure File
+  webassembly/src/features/file/file_menu.cpp
+  webassembly/src/features/file/file_menu.h
+  webassembly/src/features/file/import_types.h
+  webassembly/src/features/file/recent_files.cpp
+  webassembly/src/features/file/recent_files.h
+  webassembly/src/features/file/structure_import.cpp
+  webassembly/src/features/file/structure_import.h
+  webassembly/src/features/file/structure_import_controller.cpp
+  webassembly/src/features/file/structure_import_controller.h
+  webassembly/src/features/file/structure_import_ui.cpp
+  webassembly/src/features/file/structure_import_ui.h
 )
 
 add_executable(${PROJECT_NAME}

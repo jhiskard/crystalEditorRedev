@@ -1,8 +1,9 @@
-﻿/**
+/**
  * @file bind_function.cpp
- * @brief Embind exports for the Phase 1 bootstrap shell.
+ * @brief Embind exports for the app shell and restored File feature bridge.
  */
 #include "app/app.h"
+#include "features/file/file_menu.h"
 
 #include <emscripten/bind.h>
 
@@ -11,15 +12,6 @@
 
 namespace {
 
-void stub_loadArrayBuffer(const std::string& /*fileName*/, bool /*deleteFile*/) {}
-void stub_loadChgcarFile(const std::string& /*fileName*/) {}
-void stub_handleXSFGridFile(const std::string& /*fileName*/) {}
-void stub_handleStructureFile(const std::string& /*fileName*/) {}
-void stub_writeChunk(const std::string& /*fileName*/, int32_t /*offset*/, uintptr_t /*data*/, int32_t /*length*/) {}
-void stub_closeFile(const std::string& /*fileName*/) {}
-void stub_processFileInBackground(const std::string& /*fileName*/, bool /*deleteFile*/) {}
-void stub_showProgressPopup(bool /*show*/) {}
-void stub_setProgressPopupText(const std::string& /*title*/, const std::string& /*text*/) {}
 #ifdef DEBUG_BUILD
 void stub_printMeshTree() {}
 #endif
@@ -31,16 +23,17 @@ EMSCRIPTEN_BINDINGS(Constant) {
     emscripten::function("saveImGuiIniFile", &app::App::SaveImGuiIniFile);
     emscripten::function("loadImGuiIniFile", &app::App::LoadImGuiIniFile);
 
-    emscripten::function("loadArrayBuffer", &stub_loadArrayBuffer);
-    emscripten::function("loadChgcarFile", &stub_loadChgcarFile);
-    emscripten::function("handleXSFGridFile", &stub_handleXSFGridFile);
-    emscripten::function("handleStructureFile", &stub_handleStructureFile);
+    emscripten::function("loadArrayBuffer", &features::file::LoadArrayBuffer);
+    emscripten::function("loadChgcarFile", &features::file::LoadChgcarFile);
+    emscripten::function("handleXSFGridFile", &features::file::HandleXsfGridFile);
+    emscripten::function("handleStructureFile", &features::file::HandleStructureFile);
 #ifdef DEBUG_BUILD
     emscripten::function("printMeshTree", &stub_printMeshTree);
 #endif
-    emscripten::function("writeChunk", &stub_writeChunk);
-    emscripten::function("closeFile", &stub_closeFile);
-    emscripten::function("processFileInBackground", &stub_processFileInBackground);
-    emscripten::function("showProgressPopup", &stub_showProgressPopup);
-    emscripten::function("setProgressPopupText", &stub_setProgressPopupText);
+    emscripten::function("writeChunk", &features::file::WriteChunk);
+    emscripten::function("closeFile", &features::file::CloseFile);
+    emscripten::function("processFileInBackground", &features::file::ProcessFileInBackground);
+    emscripten::function("showProgressPopup", &features::file::ShowProgressPopup);
+    emscripten::function("setProgress", &features::file::SetProgress);
+    emscripten::function("setProgressPopupText", &features::file::SetProgressPopupText);
 }

@@ -7,9 +7,15 @@
 
 #include "core/io/chgcar_parser.h"
 #include "core/io/format_registry.h"
+#include "core/io/xsf_parser.h"
 #include "core/scene/scene_state.h"
 
 #include <imgui.h>
+
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
 
 namespace features::data {
 namespace {
@@ -145,6 +151,67 @@ void Shutdown() {
     if (g_sliceController != nullptr) {
         g_sliceController->Clear();
     }
+}
+
+bool LoadChgcarParseResult(const std::string& name, const core::io::ChgcarParser::ParseResult& parsed) {
+    if (g_chargeDensityController == nullptr) {
+        return false;
+    }
+
+    std::unique_ptr<charge_density::ChargeDensity> data =
+        charge_density::ChargeDensity::FromChgcarParseResult(parsed);
+    if (data == nullptr) {
+        return false;
+    }
+
+    std::unique_ptr<charge_density::ChargeDensity> sliceData =
+        std::make_unique<charge_density::ChargeDensity>(*data);
+    g_chargeDensityController->SetNamedData(name.empty() ? std::string("CHGCAR") : name, std::move(data));
+    if (g_sliceController != nullptr) {
+        g_sliceController->SetData(std::move(sliceData));
+    }
+    return true;
+}
+
+bool LoadXsfGridResult(const std::string& name, const core::io::XsfGridParseResult& parsed) {
+    (void)name;
+    if (g_chargeDensityController == nullptr) {
+        return false;
+    }
+
+    std::vector<std::pair<std::string, std::unique_ptr<charge_density::ChargeDensity>>> entries;
+    entries.reserve(parsed.grids.size());
+    int unnamedIndex = 1;
+    for (const core::io::XsfGridData& grid : parsed.grids) {
+        std::unique_ptr<charge_density::ChargeDensity> data =
+            charge_density::ChargeDensity::FromXsfGridData(parsed, grid);
+        if (data == nullptr) {
+            continue;
+        }
+
+        std::string gridName = grid.label;
+        if (gridName.empty()) {
+            gridName = "noname_";
+            if (unnamedIndex < 10) {
+                gridName += "0";
+            }
+            gridName += std::to_string(unnamedIndex);
+        }
+        ++unnamedIndex;
+        entries.emplace_back(std::move(gridName), std::move(data));
+    }
+
+    if (entries.empty()) {
+        return false;
+    }
+
+    std::unique_ptr<charge_density::ChargeDensity> sliceData =
+        std::make_unique<charge_density::ChargeDensity>(*entries.front().second);
+    g_chargeDensityController->SetNamedDataEntries(std::move(entries));
+    if (g_sliceController != nullptr) {
+        g_sliceController->SetData(std::move(sliceData));
+    }
+    return true;
 }
 
 } // namespace features::data

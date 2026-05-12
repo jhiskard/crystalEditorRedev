@@ -160,6 +160,9 @@ void ChargeDensityUI::RenderFileSection() {
         ImGui::SetNextItemWidth(-1.0f);
         if (ImGui::Combo("##MeshSelector", &selected, labels.data(), static_cast<int>(labels.size()))) {
             if (controller_.SelectDataIndex(selected)) {
+                if (sliceController_ != nullptr) {
+                    sliceController_->SetData(controller_.CloneActiveData());
+                }
                 SyncFromController();
                 SyncSliceSharedSettings();
             }

@@ -1,8 +1,16 @@
 #pragma once
 
+#include "core/io/chgcar_parser.h"
+
+#include <string>
+
 namespace core::scene {
 struct SceneState;
 }
+
+namespace core::io {
+struct XsfGridParseResult;
+} // namespace core::io
 
 namespace features::data {
 
@@ -25,5 +33,7 @@ void RenderWindows();
 void Tick(float dt);
 void Shutdown();
 
-} // namespace features::data
+bool LoadChgcarParseResult(const std::string& name, const core::io::ChgcarParser::ParseResult& parsed);
+bool LoadXsfGridResult(const std::string& name, const core::io::XsfGridParseResult& parsed);
 
+} // namespace features::data

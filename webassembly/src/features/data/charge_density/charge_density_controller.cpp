@@ -91,6 +91,50 @@ void ChargeDensityController::SetData(std::unique_ptr<ChargeDensity> data) {
     pushDataEntry("Charge Density", std::move(data));
 }
 
+void ChargeDensityController::SetNamedData(const std::string& name, std::unique_ptr<ChargeDensity> data) {
+    if (data == nullptr) {
+        ClearData();
+        return;
+    }
+    dataEntries_.clear();
+    activeDataIndex_ = -1;
+    pushDataEntry(name.empty() ? std::string("Charge Density") : name, std::move(data));
+}
+
+void ChargeDensityController::SetNamedDataEntries(
+    std::vector<std::pair<std::string, std::unique_ptr<ChargeDensity>>> entries) {
+    isosurfaceRenderer_.Clear();
+    volumeRenderer_.Clear();
+    data_.reset();
+    dataEntries_.clear();
+    activeDataIndex_ = -1;
+
+    for (auto& entry : entries) {
+        if (entry.second == nullptr) {
+            continue;
+        }
+        std::string entryName = entry.first.empty() ? std::string("Grid") : std::move(entry.first);
+        dataEntries_.emplace_back(std::move(entryName), std::move(entry.second));
+    }
+
+    if (dataEntries_.empty()) {
+        ClearData();
+        return;
+    }
+
+    setActiveDataByIndex(0);
+    statusMessage_ = (dataEntries_.size() > 1)
+        ? "XSF grid data loaded. Select Mesh to switch grids."
+        : "XSF grid data loaded.";
+}
+
+std::unique_ptr<ChargeDensity> ChargeDensityController::CloneActiveData() const {
+    if (data_ == nullptr) {
+        return nullptr;
+    }
+    return std::make_unique<ChargeDensity>(*data_);
+}
+
 void ChargeDensityController::SetIsoValue(float value) {
     if (data_ == nullptr) {
         return;

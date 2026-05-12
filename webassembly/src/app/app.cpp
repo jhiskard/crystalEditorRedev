@@ -10,6 +10,8 @@
 #include "../features/build/build_menu.h"
 #include "../features/data/data_menu.h"
 #include "../features/edit/edit_menu.h"
+#include "../features/file/file_menu.h"
+#include "../features/measurement/measurement_menu.h"
 #include "../features/utilities/brillouin_zone/bz_menu.h"
 
 #define GLFW_INCLUDE_ES3
@@ -109,10 +111,12 @@ int App::Init() {
         interactor->SetInteractorStyle(g_mouseInteractor.GetPointer());
     }
 
+    features::file::InitOnce(g_sceneState);
     features::utilities::bz::InitOnce(g_sceneState);
     features::data::InitOnce(g_sceneState);
     features::build::InitOnce(g_sceneState);
     features::edit::InitOnce(g_sceneState, *g_mouseInteractor);
+    features::measurement::InitOnce(g_sceneState, *g_mouseInteractor);
 
     initialized_ = true;
     return 0;
@@ -225,10 +229,12 @@ void App::renderDockSpace() {
             ImGui::TextUnformatted("Features will return in later phases.");
             ImGui::EndMenu();
         }
-        features::utilities::bz::DrawMenu();
-        features::data::DrawMenu();
-        features::build::DrawMenu();
+        features::file::DrawMenu();
         features::edit::DrawMenu();
+        features::build::DrawMenu();
+        features::measurement::DrawMenu();
+        features::data::DrawMenu();
+        features::utilities::bz::DrawMenu();
         ImGui::EndMenuBar();
     }
 
@@ -236,10 +242,12 @@ void App::renderDockSpace() {
     ImGui::DockSpace(dockspaceId, ImVec2(0.0f, 0.0f), ImGuiDockNodeFlags_None);
     ImGui::End();
 
-    features::utilities::bz::RenderWindows();
-    features::data::RenderWindows();
-    features::build::RenderWindows();
+    features::file::RenderWindows();
     features::edit::RenderWindows();
+    features::build::RenderWindows();
+    features::measurement::RenderWindows();
+    features::data::RenderWindows();
+    features::utilities::bz::RenderWindows();
 }
 
 } // namespace app

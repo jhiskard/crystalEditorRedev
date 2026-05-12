@@ -1,10 +1,17 @@
 #pragma once
 
+#include "core/io/chgcar_parser.h"
+
 #include <array>
 #include <memory>
 #include <string>
 #include <utility>
 #include <vector>
+
+namespace core::io {
+struct XsfGridData;
+struct XsfGridParseResult;
+} // namespace core::io
 
 namespace features::data::charge_density {
 
@@ -16,6 +23,10 @@ public:
                   const float lattice[3][3]);
 
     static std::unique_ptr<ChargeDensity> FromFile(const std::string& filePath);
+    static std::unique_ptr<ChargeDensity> FromChgcarParseResult(const core::io::ChgcarParser::ParseResult& parsed);
+    static std::unique_ptr<ChargeDensity> FromXsfGridParseResult(const core::io::XsfGridParseResult& parsed);
+    static std::unique_ptr<ChargeDensity> FromXsfGridData(const core::io::XsfGridParseResult& parsed,
+                                                          const core::io::XsfGridData& grid);
     static std::unique_ptr<ChargeDensity> CreateSample();
 
     const std::array<int, 3>& GridShape() const { return gridShape_; }

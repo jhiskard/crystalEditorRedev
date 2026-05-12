@@ -1,12 +1,46 @@
-﻿#include "file_dialog.h"
+#include "file_dialog.h"
 
 #include <algorithm>
 #include <cstring>
 
+#include <emscripten/emscripten.h>
+
 namespace core::io {
 
 void FileDialog::RequestOpenStructureImport() {
-    // Phase 2 skeleton: JS bridge wiring is restored in Phase 3.
+    EM_ASM({
+        let fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.multiple = false;
+        fileInput.accept = '.xsf,.vasp,CHGCAR*,*';
+        fileInput.onchange = () => {
+            if (fileInput.files.length == 0) {
+                return;
+            }
+            const file = fileInput.files[0];
+
+            VtkModule.setProgressPopupText("Loading structure file", `File(${file.name}) is loading, please wait...`);
+            VtkModule.showProgressPopup(true);
+
+            const reader = new FileReader();
+            reader.readAsArrayBuffer(file);
+            reader.onload = () => {
+                try {
+                    const data = new Uint8Array(reader.result);
+                    VtkModule.FS.createDataFile('/', file.name, data, true, false, true);
+                    VtkModule.handleStructureFile(file.name);
+                } catch (e) {
+                    console.error("Structure file loading error", e);
+                    VtkModule.showProgressPopup(false);
+                }
+            };
+            reader.onerror = (e) => {
+                console.error("File reading error", e);
+                VtkModule.showProgressPopup(false);
+            };
+        };
+        fileInput.click();
+    });
 }
 
 void FileDialog::WriteChunk(const std::string& fileName,

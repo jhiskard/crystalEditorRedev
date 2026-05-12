@@ -27,6 +27,11 @@ std::string extensionFromPath(const std::string& path) {
     return {};
 }
 
+std::string fileNameFromPath(const std::string& path) {
+    std::filesystem::path p(path);
+    return toLower(p.filename().string());
+}
+
 } // namespace
 
 void FormatRegistry::Register(std::string ext, ParseFn fn) {
@@ -44,9 +49,8 @@ bool FormatRegistry::Parse(const std::string& path, ParseResult& out) const {
     auto it = entries_.find(ext);
 
     if (it == entries_.end()) {
-        std::filesystem::path p(path);
-        const std::string fileNameUpper = toLower(p.filename().string());
-        if (fileNameUpper == "chgcar") {
+        const std::string fileNameLower = fileNameFromPath(path);
+        if (fileNameLower.find("chgcar") != std::string::npos) {
             it = entries_.find(".chgcar");
         }
     }
@@ -61,6 +65,16 @@ bool FormatRegistry::Parse(const std::string& path, ParseResult& out) const {
 
 void FormatRegistry::RegisterDefaults(FormatRegistry& registry) {
     registry.Register(".xsf", [](const std::string& path, ParseResult& out) {
+        if (ContainsDatagrid3D(path)) {
+            const XsfGridParseResult result = ParseXSFGridFile(path);
+            out.parserId = "xsf_grid";
+            out.success = result.success;
+            out.path = path;
+            out.errorMessage = result.errorMessage;
+            out.payload = result;
+            return out.success;
+        }
+
         const XsfParseResult result = ParseXSFFile(path);
         out.parserId = "xsf";
         out.success = result.success;
@@ -71,6 +85,16 @@ void FormatRegistry::RegisterDefaults(FormatRegistry& registry) {
     });
 
     registry.Register(".chgcar", [](const std::string& path, ParseResult& out) {
+        const ChgcarParser::ParseResult result = ChgcarParser::parse(path);
+        out.parserId = "chgcar";
+        out.success = result.success;
+        out.path = path;
+        out.errorMessage = result.errorMessage;
+        out.payload = result;
+        return out.success;
+    });
+
+    registry.Register(".vasp", [](const std::string& path, ParseResult& out) {
         const ChgcarParser::ParseResult result = ChgcarParser::parse(path);
         out.parserId = "chgcar";
         out.success = result.success;

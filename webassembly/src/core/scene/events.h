@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include <cstdint>
+#include <array>
 #include <functional>
 #include <utility>
 #include <vector>
@@ -56,6 +57,29 @@ struct CellChangedEvent {
 struct SelectionChangedEvent {
 };
 
+struct AtomPickedEvent {
+    int32_t structureId = -1;
+    std::array<double, 3> pickPosition = {0.0, 0.0, 0.0};
+    int screenX = 0;
+    int screenY = 0;
+};
+
+struct EmptyClickEvent {
+    int32_t structureId = -1;
+    int screenX = 0;
+    int screenY = 0;
+};
+
+struct DragSelectionEvent {
+    int32_t structureId = -1;
+    int x0 = 0;
+    int y0 = 0;
+    int x1 = 0;
+    int y1 = 0;
+    int viewportHeight = 0;
+    bool additive = false;
+};
+
 class EventBus {
 public:
     Bus<StructureAddedEvent> onStructureAdded;
@@ -65,6 +89,9 @@ public:
     Bus<BondsChangedEvent> onBondsChanged;
     Bus<CellChangedEvent> onCellChanged;
     Bus<SelectionChangedEvent> onSelectionChanged;
+    Bus<AtomPickedEvent> onAtomPicked;
+    Bus<EmptyClickEvent> onEmptyClick;
+    Bus<DragSelectionEvent> onDragSelection;
 };
 
 } // namespace core::scene

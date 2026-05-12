@@ -1,11 +1,45 @@
 #include "charge_density.h"
 
 #include "core/io/chgcar_parser.h"
+#include "core/io/xsf_parser.h"
 
 #include <algorithm>
 #include <cmath>
 
 namespace features::data::charge_density {
+namespace {
+
+std::vector<float> ToVaspOrderedDensity(const core::io::XsfGridData& grid) {
+    const int nx = grid.dims[0];
+    const int ny = grid.dims[1];
+    const int nz = grid.dims[2];
+    if (nx <= 0 || ny <= 0 || nz <= 0) {
+        return {};
+    }
+
+    const size_t total = static_cast<size_t>(nx) * static_cast<size_t>(ny) * static_cast<size_t>(nz);
+    if (grid.values.size() < total) {
+        return {};
+    }
+
+    std::vector<float> density(total, 0.0f);
+    for (int ix = 0; ix < nx; ++ix) {
+        for (int iy = 0; iy < ny; ++iy) {
+            for (int iz = 0; iz < nz; ++iz) {
+                const size_t xsfIdx = static_cast<size_t>(ix)
+                    + static_cast<size_t>(iy) * static_cast<size_t>(nx)
+                    + static_cast<size_t>(iz) * static_cast<size_t>(nx) * static_cast<size_t>(ny);
+                const size_t vaspIdx = static_cast<size_t>(iz)
+                    + static_cast<size_t>(iy) * static_cast<size_t>(nz)
+                    + static_cast<size_t>(ix) * static_cast<size_t>(ny) * static_cast<size_t>(nz);
+                density[vaspIdx] = grid.values[xsfIdx];
+            }
+        }
+    }
+    return density;
+}
+
+} // namespace
 
 ChargeDensity::ChargeDensity(const std::vector<float>& data,
                              const std::array<int, 3>& gridShape,
@@ -27,6 +61,54 @@ std::unique_ptr<ChargeDensity> ChargeDensity::FromFile(const std::string& filePa
     }
 
     return std::make_unique<ChargeDensity>(parsed.density, parsed.gridShape, parsed.lattice);
+}
+
+std::unique_ptr<ChargeDensity> ChargeDensity::FromChgcarParseResult(const core::io::ChgcarParser::ParseResult& parsed) {
+    if (!parsed.success || parsed.density.empty()) {
+        return nullptr;
+    }
+    return std::make_unique<ChargeDensity>(parsed.density, parsed.gridShape, parsed.lattice);
+}
+
+std::unique_ptr<ChargeDensity> ChargeDensity::FromXsfGridParseResult(const core::io::XsfGridParseResult& parsed) {
+    if (!parsed.success || parsed.grids.empty()) {
+        return nullptr;
+    }
+
+    const core::io::XsfGridData* selectedGrid = nullptr;
+    for (const auto& grid : parsed.grids) {
+        if (!grid.values.empty()) {
+            selectedGrid = &grid;
+            break;
+        }
+    }
+    if (selectedGrid == nullptr) {
+        return nullptr;
+    }
+
+    return FromXsfGridData(parsed, *selectedGrid);
+}
+
+std::unique_ptr<ChargeDensity> ChargeDensity::FromXsfGridData(const core::io::XsfGridParseResult& parsed,
+                                                              const core::io::XsfGridData& grid) {
+    if (!parsed.success || grid.values.empty()) {
+        return nullptr;
+    }
+
+    std::vector<float> density = ToVaspOrderedDensity(grid);
+    if (density.empty()) {
+        return nullptr;
+    }
+
+    float lattice[3][3] = {};
+    const auto& sourceVectors = parsed.hasCellVectors ? parsed.latticeVectors : grid.vectors;
+    for (int row = 0; row < 3; ++row) {
+        for (int col = 0; col < 3; ++col) {
+            lattice[row][col] = static_cast<float>(sourceVectors[row][col]);
+        }
+    }
+
+    return std::make_unique<ChargeDensity>(density, grid.dims, lattice);
 }
 
 std::unique_ptr<ChargeDensity> ChargeDensity::CreateSample() {
