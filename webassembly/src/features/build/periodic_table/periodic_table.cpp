@@ -76,16 +76,17 @@ std::array<float, 3> CartesianToFractional(
         return {0.0f, 0.0f, 0.0f};
     }
 
+    // Cell vectors are stored as matrix rows, so use cartesian[j] * inverse[j][i].
     std::array<float, 3> fractional = {0.0f, 0.0f, 0.0f};
-    fractional[0] = (inverse[0][0] * cartesian[0]) +
-                    (inverse[0][1] * cartesian[1]) +
-                    (inverse[0][2] * cartesian[2]);
-    fractional[1] = (inverse[1][0] * cartesian[0]) +
-                    (inverse[1][1] * cartesian[1]) +
-                    (inverse[1][2] * cartesian[2]);
-    fractional[2] = (inverse[2][0] * cartesian[0]) +
-                    (inverse[2][1] * cartesian[1]) +
-                    (inverse[2][2] * cartesian[2]);
+    fractional[0] = (cartesian[0] * inverse[0][0]) +
+                    (cartesian[1] * inverse[1][0]) +
+                    (cartesian[2] * inverse[2][0]);
+    fractional[1] = (cartesian[0] * inverse[0][1]) +
+                    (cartesian[1] * inverse[1][1]) +
+                    (cartesian[2] * inverse[2][1]);
+    fractional[2] = (cartesian[0] * inverse[0][2]) +
+                    (cartesian[1] * inverse[1][2]) +
+                    (cartesian[2] * inverse[2][2]);
 
     return fractional;
 }

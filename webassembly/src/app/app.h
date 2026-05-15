@@ -1,16 +1,25 @@
 /**
  * @file app/app.h
- * @brief Application shell bootstrap for Phase 1.
+ * @brief Application shell bootstrap.
  */
 #pragma once
 
 struct GLFWwindow;
+struct ImGuiViewport;
 
 namespace app {
 
+enum class LayoutPreset {
+    None,
+    Layout1,
+    Layout2,
+    Layout3,
+    Reset,
+};
+
 /**
  * @class App
- * @brief Owns minimal GLFW + ImGui lifecycle and renders an empty dockspace.
+ * @brief Owns GLFW, ImGui, and feature window lifecycle.
  */
 class App {
 public:
@@ -26,7 +35,7 @@ public:
     int Init();
 
     /**
-     * @brief Renders one frame of the Phase 1 shell.
+     * @brief Renders one application frame.
      */
     void RenderFrame();
 
@@ -57,11 +66,16 @@ private:
     App& operator=(const App&) = delete;
 
     /**
-     * @brief Draws the root dockspace window and placeholder menu.
+     * @brief Draws the root dockspace window and menu bar.
      */
     void renderDockSpace();
+    void renderLayoutButtons();
+    void applyPendingLayout(unsigned int dockspaceId, const ImGuiViewport* viewport);
+    void applyResetWindowGeometry(const ImGuiViewport* viewport);
 
     GLFWwindow* window_ = nullptr;
+    LayoutPreset pendingLayoutPreset_ = LayoutPreset::None;
+    int resetWindowGeometryPassesRemaining_ = 0;
     bool initialized_ = false;
 };
 

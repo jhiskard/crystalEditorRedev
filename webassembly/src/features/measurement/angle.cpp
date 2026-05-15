@@ -184,7 +184,8 @@ bool BuildAngleVisual(
     const core::scene::AtomRecord& atom1,
     const core::scene::AtomRecord& atom2,
     const core::scene::AtomRecord& atom3,
-    AngleVisual& visual) {
+    AngleVisual& visual,
+    double arcRadiusScale) {
     const auto p1 = ToVec3(atom1.cartesian);
     const auto p2 = ToVec3(atom2.cartesian);
     const auto p3 = ToVec3(atom3.cartesian);
@@ -214,7 +215,7 @@ bool BuildAngleVisual(
         tangent = Scale(tangent, -1.0);
     }
 
-    const double radius = std::max(0.05, std::min(len1, len2) * 0.35);
+    const double radius = std::max(0.05, std::min(len1, len2) * 0.35 * std::max(0.0, arcRadiusScale));
     constexpr int kResolution = 48;
     std::vector<std::array<double, 3>> arcPoints;
     arcPoints.reserve(kResolution + 1);

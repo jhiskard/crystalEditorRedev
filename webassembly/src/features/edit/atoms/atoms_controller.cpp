@@ -3,7 +3,12 @@
 #include "../../build/periodic_table/periodic_table.h"
 #include "core/vtk/vtk_viewer.h"
 
+#include <vtkMath.h>
+#include <vtkRenderer.h>
+
 #include <algorithm>
+#include <cmath>
+#include <unordered_set>
 
 namespace features::edit::atoms {
 
@@ -39,6 +44,16 @@ void AtomsController::SubscribeEvents() {
 
     scene_.events.onSelectionChanged.Subscribe([this](const core::scene::SelectionChangedEvent&) {
         SyncSelectionFlagsFromSelectionSet();
+    });
+
+    scene_.events.onAtomPicked.Subscribe([this](const core::scene::AtomPickedEvent& event) {
+        HandleAtomPicked(event);
+    });
+    scene_.events.onEmptyClick.Subscribe([this](const core::scene::EmptyClickEvent& event) {
+        HandleEmptyClick(event);
+    });
+    scene_.events.onDragSelection.Subscribe([this](const core::scene::DragSelectionEvent& event) {
+        HandleDragSelection(event);
     });
 }
 
@@ -347,6 +362,123 @@ const core::scene::StructureRecord* AtomsController::ResolveActiveRecordConst() 
         return nullptr;
     }
     return &it->second;
+}
+
+const core::scene::AtomRecord* AtomsController::ResolvePickedAtom(const core::scene::AtomPickedEvent& event) const {
+    const core::scene::StructureRecord* record = ResolveActiveRecordConst();
+    if (record == nullptr || event.structureId != ActiveStructureId()) {
+        return nullptr;
+    }
+
+    const core::scene::AtomRecord* closest = nullptr;
+    double closestDistance2 = 0.0;
+    for (const core::scene::AtomRecord& atom : record->atoms) {
+        if (!atom.visible) {
+            continue;
+        }
+
+        const double dx = static_cast<double>(atom.cartesian[0]) - event.pickPosition[0];
+        const double dy = static_cast<double>(atom.cartesian[1]) - event.pickPosition[1];
+        const double dz = static_cast<double>(atom.cartesian[2]) - event.pickPosition[2];
+        const double distance2 = dx * dx + dy * dy + dz * dz;
+        if (closest == nullptr || distance2 < closestDistance2) {
+            closest = &atom;
+            closestDistance2 = distance2;
+        }
+    }
+    return closest;
+}
+
+std::unordered_set<uint32_t> AtomsController::CollectAtomsInRect(const core::scene::DragSelectionEvent& event) const {
+    std::unordered_set<uint32_t> selectedIds;
+    const core::scene::StructureRecord* record = ResolveActiveRecordConst();
+    vtkRenderer* renderer = core::vtk::VtkViewer::Instance().GetRenderer();
+    if (record == nullptr || renderer == nullptr || event.structureId != ActiveStructureId()) {
+        return selectedIds;
+    }
+
+    selectedIds.reserve(record->atoms.size());
+
+    const int minX = std::min(event.x0, event.x1);
+    const int maxX = std::max(event.x0, event.x1);
+    const int minY = std::min(event.y0, event.y1);
+    const int maxY = std::max(event.y0, event.y1);
+
+    for (const core::scene::AtomRecord& atom : record->atoms) {
+        if (!atom.visible) {
+            continue;
+        }
+
+        renderer->SetWorldPoint(
+            static_cast<double>(atom.cartesian[0]),
+            static_cast<double>(atom.cartesian[1]),
+            static_cast<double>(atom.cartesian[2]),
+            1.0);
+        renderer->WorldToDisplay();
+        double display[3] = {0.0, 0.0, 0.0};
+        renderer->GetDisplayPoint(display);
+        if (!std::isfinite(display[0]) || !std::isfinite(display[1]) || !std::isfinite(display[2]) ||
+            display[2] < 0.0 || display[2] > 1.0) {
+            continue;
+        }
+
+        const int x = static_cast<int>(std::round(display[0]));
+        const int y = static_cast<int>(std::round(display[1]));
+        if (x >= minX && x <= maxX && y >= minY && y <= maxY) {
+            selectedIds.insert(atom.id);
+        }
+    }
+
+    return selectedIds;
+}
+
+void AtomsController::SelectSameElement(int32_t structureId, const std::string& symbol) {
+    auto recordIt = scene_.structureRecords.find(structureId);
+    if (recordIt == scene_.structureRecords.end()) {
+        return;
+    }
+
+    std::unordered_set<uint32_t> selectedIds;
+    selectedIds.reserve(recordIt->second.atoms.size());
+    for (const core::scene::AtomRecord& atom : recordIt->second.atoms) {
+        if (atom.visible && atom.symbol == symbol) {
+            selectedIds.insert(atom.id);
+        }
+    }
+    manager_.SetSelectionByIds(structureId, selectedIds, false);
+}
+
+void AtomsController::HandleAtomPicked(const core::scene::AtomPickedEvent& event) {
+    if (!event.selectionModifier || event.structureId != ActiveStructureId()) {
+        return;
+    }
+
+    const core::scene::AtomRecord* atom = ResolvePickedAtom(event);
+    if (atom == nullptr) {
+        return;
+    }
+
+    if (event.doubleClick) {
+        SelectSameElement(event.structureId, atom->symbol);
+        return;
+    }
+
+    manager_.SetSelectionByIds(event.structureId, std::unordered_set<uint32_t>{atom->id}, false);
+}
+
+void AtomsController::HandleEmptyClick(const core::scene::EmptyClickEvent& event) {
+    if (event.structureId != ActiveStructureId()) {
+        return;
+    }
+    manager_.SelectNone(event.structureId);
+}
+
+void AtomsController::HandleDragSelection(const core::scene::DragSelectionEvent& event) {
+    if ((!event.selectionModifier && !event.additive) || event.structureId != ActiveStructureId()) {
+        return;
+    }
+
+    manager_.SetSelectionByIds(event.structureId, CollectAtomsInRect(event), event.additive);
 }
 
 void AtomsController::SyncMouseInteractorStructure() {

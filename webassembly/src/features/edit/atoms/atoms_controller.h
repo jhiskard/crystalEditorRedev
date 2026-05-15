@@ -14,6 +14,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <string>
+#include <unordered_set>
 #include <vector>
 
 namespace features::edit::atoms {
@@ -60,6 +61,12 @@ public:
 private:
     core::scene::StructureRecord* ResolveActiveRecord();
     const core::scene::StructureRecord* ResolveActiveRecordConst() const;
+    const core::scene::AtomRecord* ResolvePickedAtom(const core::scene::AtomPickedEvent& event) const;
+    std::unordered_set<uint32_t> CollectAtomsInRect(const core::scene::DragSelectionEvent& event) const;
+    void SelectSameElement(int32_t structureId, const std::string& symbol);
+    void HandleAtomPicked(const core::scene::AtomPickedEvent& event);
+    void HandleEmptyClick(const core::scene::EmptyClickEvent& event);
+    void HandleDragSelection(const core::scene::DragSelectionEvent& event);
     void SyncMouseInteractorStructure();
     void SyncSelectionFlagsFromSelectionSet();
 

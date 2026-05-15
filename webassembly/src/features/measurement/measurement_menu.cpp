@@ -75,6 +75,12 @@ void RenderWindows() {
     }
 }
 
+void RenderViewerOverlay(const ImVec2& viewerContentMin, const ImVec2& viewerContentMax) {
+    if (g_ui != nullptr && g_controller != nullptr && g_store != nullptr) {
+        g_ui->RenderModeOverlay(*g_controller, *g_store, viewerContentMin, viewerContentMax);
+    }
+}
+
 void Shutdown() {
     if (g_controller != nullptr) {
         g_controller->ExitMode();

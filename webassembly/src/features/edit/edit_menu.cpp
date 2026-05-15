@@ -8,6 +8,7 @@
 #include "cell/cell_info_ui.h"
 
 #include "core/scene/scene_state.h"
+#include "core/vtk/vtk_viewer.h"
 
 #include <imgui.h>
 
@@ -18,6 +19,7 @@ bool g_showCellInfoWindow = false;
 bool g_showCreatedAtomsWindow = false;
 bool g_showBondsManagementWindow = false;
 
+core::scene::SceneState* g_scene = nullptr;
 cell::CellController* g_cellController = nullptr;
 cell::CellInfoUI* g_cellInfoUI = nullptr;
 atoms::AtomsController* g_atomsController = nullptr;
@@ -51,6 +53,7 @@ void InitOnce(core::scene::SceneState& scene, core::vtk::MouseInteractor& mouseI
     g_atomEditorUI = &atomEditorUI;
     g_bondsController = &bondsController;
     g_bondUI = &bondUI;
+    g_scene = &scene;
 }
 
 void DrawMenu() {
@@ -102,6 +105,7 @@ void Tick(float /*dt*/) {
 }
 
 void Shutdown() {
+    g_scene = nullptr;
     g_cellController = nullptr;
     g_cellInfoUI = nullptr;
     g_atomsController = nullptr;
@@ -111,6 +115,31 @@ void Shutdown() {
     g_showCellInfoWindow = false;
     g_showCreatedAtomsWindow = false;
     g_showBondsManagementWindow = false;
+}
+
+bool IsBoundaryAtomsEnabled() {
+    return g_atomsController != nullptr && g_atomsController->BoundaryAtomsEnabled();
+}
+
+void SetBoundaryAtomsEnabled(bool enabled) {
+    if (g_atomsController == nullptr) {
+        return;
+    }
+    g_atomsController->SetBoundaryAtomsEnabled(enabled);
+    core::vtk::VtkViewer::Instance().RequestRender();
+}
+
+bool AlignCameraToCurrentCellAxis(int axisIndex) {
+    if (g_scene == nullptr || g_scene->currentStructureId < 0) {
+        return false;
+    }
+
+    auto recordIt = g_scene->structureRecords.find(g_scene->currentStructureId);
+    if (recordIt == g_scene->structureRecords.end() || !recordIt->second.cell.hasCell) {
+        return false;
+    }
+
+    return core::vtk::VtkViewer::Instance().AlignCameraToCellAxis(recordIt->second.cell.matrix, axisIndex);
 }
 
 } // namespace features::edit

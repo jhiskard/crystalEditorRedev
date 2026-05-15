@@ -8,6 +8,8 @@
 #include <vtkPointData.h>
 #include <vtkPolyDataMapper.h>
 #include <vtkProperty.h>
+#include <vtkTransform.h>
+#include <vtkTransformPolyDataFilter.h>
 
 #include <algorithm>
 #include <cmath>
@@ -54,6 +56,21 @@ vtkSmartPointer<vtkImageData> BuildImageData(const features::data::charge_densit
     return image;
 }
 
+vtkSmartPointer<vtkTransform> BuildLatticeTransform(const features::data::charge_density::ChargeDensity& cd) {
+    const auto& lattice = cd.Lattice();
+    vtkSmartPointer<vtkTransform> transform = vtkSmartPointer<vtkTransform>::New();
+    transform->Identity();
+
+    const double matrix[16] = {
+        lattice[0][0], lattice[1][0], lattice[2][0], 0.0,
+        lattice[0][1], lattice[1][1], lattice[2][1], 0.0,
+        lattice[0][2], lattice[1][2], lattice[2][2], 0.0,
+        0.0,           0.0,           0.0,           1.0,
+    };
+    transform->SetMatrix(matrix);
+    return transform;
+}
+
 } // namespace
 
 void SliceRenderer::SetPlane(SlicePlane plane, float position) {
@@ -89,19 +106,22 @@ void SliceRenderer::Render(const features::data::charge_density::ChargeDensity& 
         return;
     }
 
+    double bounds[6] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+    image->GetBounds(bounds);
+
     vtkSmartPointer<vtkPlane> plane = vtkSmartPointer<vtkPlane>::New();
     switch (plane_) {
     case SlicePlane::XY:
         plane->SetNormal(0.0, 0.0, 1.0);
-        plane->SetOrigin(0.0, 0.0, position_);
+        plane->SetOrigin(0.0, 0.0, bounds[4] + static_cast<double>(position_) * (bounds[5] - bounds[4]));
         break;
     case SlicePlane::XZ:
         plane->SetNormal(0.0, 1.0, 0.0);
-        plane->SetOrigin(0.0, position_, 0.0);
+        plane->SetOrigin(0.0, bounds[2] + static_cast<double>(position_) * (bounds[3] - bounds[2]), 0.0);
         break;
     case SlicePlane::YZ:
         plane->SetNormal(1.0, 0.0, 0.0);
-        plane->SetOrigin(position_, 0.0, 0.0);
+        plane->SetOrigin(bounds[0] + static_cast<double>(position_) * (bounds[1] - bounds[0]), 0.0, 0.0);
         break;
     case SlicePlane::Miller:
     default:
@@ -109,8 +129,6 @@ void SliceRenderer::Render(const features::data::charge_density::ChargeDensity& 
             return;
         }
 
-        double bounds[6] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-        image->GetBounds(bounds);
         const double extentX = std::max(bounds[1] - bounds[0], 1e-8);
         const double extentY = std::max(bounds[3] - bounds[2], 1e-8);
         const double extentZ = std::max(bounds[5] - bounds[4], 1e-8);
@@ -148,6 +166,12 @@ void SliceRenderer::Render(const features::data::charge_density::ChargeDensity& 
         return;
     }
 
+    vtkSmartPointer<vtkTransformPolyDataFilter> transformFilter =
+        vtkSmartPointer<vtkTransformPolyDataFilter>::New();
+    transformFilter->SetInputConnection(cutter->GetOutputPort());
+    transformFilter->SetTransform(BuildLatticeTransform(cd));
+    transformFilter->Update();
+
     vtkSmartPointer<vtkColorTransferFunction> ctf = vtkSmartPointer<vtkColorTransferFunction>::New();
     const double rangeMin = static_cast<double>(valueMin_);
     const double rangeMax = static_cast<double>(valueMax_);
@@ -174,7 +198,7 @@ void SliceRenderer::Render(const features::data::charge_density::ChargeDensity& 
     lut->Build();
 
     vtkSmartPointer<vtkPolyDataMapper> mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
-    mapper->SetInputConnection(cutter->GetOutputPort());
+    mapper->SetInputConnection(transformFilter->GetOutputPort());
     mapper->SetLookupTable(lut);
     mapper->SetColorModeToMapScalars();
     mapper->SetScalarModeToUsePointData();

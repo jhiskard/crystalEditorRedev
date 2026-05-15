@@ -5,6 +5,8 @@
 #include "core/data/element_database.h"
 
 #include <algorithm>
+#include <unordered_set>
+#include <utility>
 #include <vector>
 
 namespace features::edit::atoms {
@@ -169,14 +171,54 @@ bool AtomManager::SetSelected(int32_t structureId, uint32_t atomId, bool selecte
         return false;
     }
 
+    if (atom->selected == selected) {
+        return false;
+    }
     atom->selected = selected;
     if (selected) {
         scene_.selection.AddAtom(atomId);
     } else {
         scene_.selection.RemoveAtom(atomId);
     }
-    EmitAtomsChanged(sid);
     return true;
+}
+
+int AtomManager::SetSelectionByIds(
+    int32_t structureId,
+    const std::unordered_set<uint32_t>& selectedIds,
+    bool additive) {
+    const int32_t sid = ResolveStructureId(structureId);
+    if (sid < 0) {
+        return 0;
+    }
+
+    auto recordIt = scene_.structureRecords.find(sid);
+    if (recordIt == scene_.structureRecords.end()) {
+        return 0;
+    }
+
+    std::unordered_set<uint32_t> nextSelection = scene_.selection.Atoms();
+    int changed = 0;
+    for (auto& atom : recordIt->second.atoms) {
+        const bool selectedByBatch = selectedIds.find(atom.id) != selectedIds.end();
+        const bool shouldSelect = additive ? (atom.selected || selectedByBatch) : selectedByBatch;
+        if (atom.selected == shouldSelect) {
+            continue;
+        }
+
+        atom.selected = shouldSelect;
+        if (shouldSelect) {
+            nextSelection.insert(atom.id);
+        } else {
+            nextSelection.erase(atom.id);
+        }
+        ++changed;
+    }
+
+    if (changed > 0) {
+        scene_.selection.SetAtoms(std::move(nextSelection));
+    }
+    return changed;
 }
 
 bool AtomManager::SetSymbol(int32_t structureId, uint32_t atomId, const std::string& symbol) {
@@ -365,17 +407,18 @@ void AtomManager::SelectAll(int32_t structureId) {
         return;
     }
 
+    std::unordered_set<uint32_t> nextSelection = scene_.selection.Atoms();
     bool changed = false;
     for (auto& atom : recordIt->second.atoms) {
         if (!atom.selected) {
             atom.selected = true;
-            scene_.selection.AddAtom(atom.id);
+            nextSelection.insert(atom.id);
             changed = true;
         }
     }
 
     if (changed) {
-        EmitAtomsChanged(sid);
+        scene_.selection.SetAtoms(std::move(nextSelection));
     }
 }
 
@@ -390,17 +433,18 @@ void AtomManager::SelectNone(int32_t structureId) {
         return;
     }
 
+    std::unordered_set<uint32_t> nextSelection = scene_.selection.Atoms();
     bool changed = false;
     for (auto& atom : recordIt->second.atoms) {
         if (atom.selected) {
             atom.selected = false;
-            scene_.selection.RemoveAtom(atom.id);
+            nextSelection.erase(atom.id);
             changed = true;
         }
     }
 
     if (changed) {
-        EmitAtomsChanged(sid);
+        scene_.selection.SetAtoms(std::move(nextSelection));
     }
 }
 
@@ -415,20 +459,21 @@ void AtomManager::InvertSelection(int32_t structureId) {
         return;
     }
 
+    std::unordered_set<uint32_t> nextSelection = scene_.selection.Atoms();
     bool changed = false;
     for (auto& atom : recordIt->second.atoms) {
         const bool selected = !atom.selected;
         atom.selected = selected;
         if (selected) {
-            scene_.selection.AddAtom(atom.id);
+            nextSelection.insert(atom.id);
         } else {
-            scene_.selection.RemoveAtom(atom.id);
+            nextSelection.erase(atom.id);
         }
         changed = true;
     }
 
     if (changed) {
-        EmitAtomsChanged(sid);
+        scene_.selection.SetAtoms(std::move(nextSelection));
     }
 }
 

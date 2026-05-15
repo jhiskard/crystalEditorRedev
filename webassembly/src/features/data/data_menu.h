@@ -36,4 +36,12 @@ void Shutdown();
 bool LoadChgcarParseResult(const std::string& name, const core::io::ChgcarParser::ParseResult& parsed);
 bool LoadXsfGridResult(const std::string& name, const core::io::XsfGridParseResult& parsed);
 
+bool HasChargeDensity();
+std::string GetActiveChargeDensityName();
+bool SetChargeDensityLevelPercent(float percent);
+bool IsQuickAnimationActive();
+void StartQuickAnimation();
+void StopQuickAnimation();
+void RestartQuickAnimation();
+
 } // namespace features::data

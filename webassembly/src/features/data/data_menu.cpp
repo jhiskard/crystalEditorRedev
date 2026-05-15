@@ -9,9 +9,11 @@
 #include "core/io/format_registry.h"
 #include "core/io/xsf_parser.h"
 #include "core/scene/scene_state.h"
+#include "core/vtk/vtk_viewer.h"
 
 #include <imgui.h>
 
+#include <algorithm>
 #include <memory>
 #include <string>
 #include <utility>
@@ -28,6 +30,7 @@ charge_density::ChargeDensityUI* g_chargeDensityUI = nullptr;
 slice::SliceController* g_sliceController = nullptr;
 slice::SliceUI* g_sliceUI = nullptr;
 
+bool g_quickAnimationActive = false;
 core::io::FormatRegistry g_registry;
 bool g_registryInitialized = false;
 
@@ -151,6 +154,7 @@ void Shutdown() {
     if (g_sliceController != nullptr) {
         g_sliceController->Clear();
     }
+    g_quickAnimationActive = false;
 }
 
 bool LoadChgcarParseResult(const std::string& name, const core::io::ChgcarParser::ParseResult& parsed) {
@@ -212,6 +216,60 @@ bool LoadXsfGridResult(const std::string& name, const core::io::XsfGridParseResu
         g_sliceController->SetData(std::move(sliceData));
     }
     return true;
+}
+
+bool HasChargeDensity() {
+    return g_chargeDensityController != nullptr && g_chargeDensityController->HasData();
+}
+
+std::string GetActiveChargeDensityName() {
+    if (!HasChargeDensity()) {
+        return "Charge Density";
+    }
+
+    const std::vector<std::string> names = g_chargeDensityController->DataNames();
+    const int activeIndex = g_chargeDensityController->ActiveDataIndex();
+    if (activeIndex >= 0 && activeIndex < static_cast<int>(names.size())) {
+        return names[static_cast<size_t>(activeIndex)];
+    }
+    return "Charge Density";
+}
+
+bool SetChargeDensityLevelPercent(float percent) {
+    if (!HasChargeDensity()) {
+        return false;
+    }
+
+    percent = std::clamp(percent, 0.0f, 100.0f);
+    const float minValue = g_chargeDensityController->DataMin();
+    const float maxValue = g_chargeDensityController->DataMax();
+    const float isoValue = minValue + (maxValue - minValue) * (percent / 100.0f);
+    if (g_chargeDensityController->CurrentMode() == charge_density::Mode::None) {
+        g_chargeDensityController->Show(charge_density::Mode::Isosurface);
+    }
+    g_chargeDensityController->SetIsoValue(isoValue);
+    core::vtk::VtkViewer::Instance().RequestRender();
+    return true;
+}
+
+bool IsQuickAnimationActive() {
+    return g_quickAnimationActive;
+}
+
+void StartQuickAnimation() {
+    if (!HasChargeDensity()) {
+        return;
+    }
+    g_quickAnimationActive = true;
+}
+
+void StopQuickAnimation() {
+    g_quickAnimationActive = false;
+}
+
+void RestartQuickAnimation() {
+    StopQuickAnimation();
+    StartQuickAnimation();
 }
 
 } // namespace features::data

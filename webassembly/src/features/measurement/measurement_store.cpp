@@ -9,8 +9,12 @@
 
 #include <vtkActor.h>
 #include <vtkActor2D.h>
+#include <vtkProperty.h>
+#include <vtkTextActor.h>
+#include <vtkTextProperty.h>
 
 #include <algorithm>
+#include <cmath>
 #include <iomanip>
 #include <sstream>
 #include <unordered_set>
@@ -18,6 +22,15 @@
 
 namespace features::measurement {
 namespace {
+
+constexpr float kMinMeasurementLineWidth = 2.0f;
+constexpr float kMaxMeasurementLineWidth = 18.0f;
+constexpr float kMinMeasurementLabelScale = 1.0f;
+constexpr float kMaxMeasurementLabelScale = 3.0f;
+constexpr float kMinAngleArcRadiusScale = 0.6f;
+constexpr float kMaxAngleArcRadiusScale = 2.0f;
+constexpr float kMinDihedralPlaneOpacity = 0.05f;
+constexpr float kMaxDihedralPlaneOpacity = 0.60f;
 
 bool AllUnique(const std::vector<uint32_t>& atomIds) {
     std::unordered_set<uint32_t> unique;
@@ -28,6 +41,46 @@ bool AllUnique(const std::vector<uint32_t>& atomIds) {
         }
     }
     return true;
+}
+
+float ClampFloatRange(float value, float minValue, float maxValue) {
+    return std::clamp(value, minValue, maxValue);
+}
+
+float SnapToOneDecimal(float value) {
+    return std::round(value * 10.0f) / 10.0f;
+}
+
+int ScaledFontSize(int baseFontSize, float scale) {
+    return std::max(1, static_cast<int>(std::lround(static_cast<float>(baseFontSize) * scale)));
+}
+
+vtkTextProperty* TextPropertyFromActor(vtkActor2D* actor) {
+    vtkTextActor* textActor = vtkTextActor::SafeDownCast(actor);
+    return textActor != nullptr ? textActor->GetTextProperty() : nullptr;
+}
+
+void ApplyLineStyleToActor(vtkActor* actor, const std::array<float, 3>& color, float width) {
+    if (actor == nullptr) {
+        return;
+    }
+    vtkProperty* property = actor->GetProperty();
+    if (property == nullptr) {
+        return;
+    }
+    property->SetColor(
+        static_cast<double>(color[0]),
+        static_cast<double>(color[1]),
+        static_cast<double>(color[2]));
+    property->SetLineWidth(static_cast<double>(width));
+}
+
+void ApplyTextScaleToActor(vtkActor2D* actor, float scale, int baseFontSize) {
+    vtkTextProperty* property = TextPropertyFromActor(actor);
+    if (property == nullptr) {
+        return;
+    }
+    property->SetFontSize(ScaledFontSize(baseFontSize > 0 ? baseFontSize : property->GetFontSize(), scale));
 }
 
 } // namespace
@@ -209,6 +262,64 @@ void MeasurementStore::Clear() {
     core::vtk::VtkViewer::Instance().RequestRender();
 }
 
+void MeasurementStore::ResetStyle(MeasurementMode mode) {
+    switch (mode) {
+    case MeasurementMode::Distance:
+        distanceStyle_ = DistanceStyle {};
+        break;
+    case MeasurementMode::Angle:
+        angleStyle_ = AngleStyle {};
+        break;
+    case MeasurementMode::Dihedral:
+        dihedralStyle_ = DihedralStyle {};
+        break;
+    case MeasurementMode::GeometricCenter:
+        geometricCenterStyle_ = CenterStyle {};
+        break;
+    case MeasurementMode::CenterOfMass:
+        centerOfMassStyle_ = CenterStyle {};
+        break;
+    case MeasurementMode::None:
+    default:
+        break;
+    }
+}
+
+void MeasurementStore::ApplyStyleForMode(MeasurementMode mode, bool rebuildGeometry) {
+    if (mode == MeasurementMode::None) {
+        return;
+    }
+
+    ClampStyles();
+    const MeasurementType targetType = TypeFromMode(mode);
+    bool changed = false;
+    for (auto it = records_.begin(); it != records_.end();) {
+        if (it->type != targetType) {
+            ++it;
+            continue;
+        }
+
+        if (rebuildGeometry) {
+            DetachActors(*it);
+            if (!BuildActors(*it)) {
+                it = records_.erase(it);
+                changed = true;
+                continue;
+            }
+            AttachActors(*it);
+        } else {
+            ApplyStyle(*it);
+            ApplyVisibility(*it);
+        }
+        changed = true;
+        ++it;
+    }
+
+    if (changed) {
+        core::vtk::VtkViewer::Instance().RequestRender();
+    }
+}
+
 std::vector<MeasurementListItem> MeasurementStore::MeasurementsForStructure(int32_t structureId) const {
     const int32_t sid = ResolveStructureId(structureId);
     std::vector<MeasurementListItem> result;
@@ -287,7 +398,7 @@ bool MeasurementStore::BuildActors(MeasurementRecord& record) {
         }
 
         AngleVisual visual;
-        if (!BuildAngleVisual(*atom1, *atom2, *atom3, visual)) {
+        if (!BuildAngleVisual(*atom1, *atom2, *atom3, visual, angleStyle_.arcRadiusScale)) {
             return false;
         }
         record.value = visual.angleDeg;
@@ -360,6 +471,8 @@ bool MeasurementStore::BuildActors(MeasurementRecord& record) {
         return false;
     }
 
+    CaptureTextBaseFontSizes(record);
+    ApplyStyle(record);
     ApplyVisibility(record);
     return true;
 }
@@ -387,6 +500,179 @@ bool MeasurementStore::EffectiveVisible(const MeasurementRecord& record) const {
         }
     }
     return true;
+}
+
+void MeasurementStore::ClampStyles() {
+    auto clampColor = [](std::array<float, 3>& color) {
+        for (float& channel : color) {
+            channel = ClampFloatRange(channel, 0.0f, 1.0f);
+        }
+    };
+
+    clampColor(distanceStyle_.lineColor);
+    distanceStyle_.lineWidth = ClampFloatRange(
+        distanceStyle_.lineWidth,
+        kMinMeasurementLineWidth,
+        kMaxMeasurementLineWidth);
+    distanceStyle_.labelScale = SnapToOneDecimal(ClampFloatRange(
+        distanceStyle_.labelScale,
+        kMinMeasurementLabelScale,
+        kMaxMeasurementLabelScale));
+
+    clampColor(angleStyle_.lineColor);
+    angleStyle_.lineWidth = ClampFloatRange(
+        angleStyle_.lineWidth,
+        kMinMeasurementLineWidth,
+        kMaxMeasurementLineWidth);
+    angleStyle_.arcRadiusScale = SnapToOneDecimal(ClampFloatRange(
+        angleStyle_.arcRadiusScale,
+        kMinAngleArcRadiusScale,
+        kMaxAngleArcRadiusScale));
+    angleStyle_.labelScale = SnapToOneDecimal(ClampFloatRange(
+        angleStyle_.labelScale,
+        kMinMeasurementLabelScale,
+        kMaxMeasurementLabelScale));
+
+    clampColor(dihedralStyle_.baseLineColor);
+    dihedralStyle_.baseLineWidth = ClampFloatRange(
+        dihedralStyle_.baseLineWidth,
+        kMinMeasurementLineWidth,
+        kMaxMeasurementLineWidth);
+    clampColor(dihedralStyle_.helperPlane1Color);
+    dihedralStyle_.helperPlane1Opacity = ClampFloatRange(
+        dihedralStyle_.helperPlane1Opacity,
+        kMinDihedralPlaneOpacity,
+        kMaxDihedralPlaneOpacity);
+    clampColor(dihedralStyle_.helperPlane2Color);
+    dihedralStyle_.helperPlane2Opacity = ClampFloatRange(
+        dihedralStyle_.helperPlane2Opacity,
+        kMinDihedralPlaneOpacity,
+        kMaxDihedralPlaneOpacity);
+    dihedralStyle_.labelScale = SnapToOneDecimal(ClampFloatRange(
+        dihedralStyle_.labelScale,
+        kMinMeasurementLabelScale,
+        kMaxMeasurementLabelScale));
+
+    auto clampCenterStyle = [&](CenterStyle& style) {
+        clampColor(style.centerPlusColor);
+        style.centerPlusScale = SnapToOneDecimal(ClampFloatRange(
+            style.centerPlusScale,
+            kMinMeasurementLabelScale,
+            kMaxMeasurementLabelScale));
+        clampColor(style.selectedPlusColor);
+        style.selectedPlusScale = SnapToOneDecimal(ClampFloatRange(
+            style.selectedPlusScale,
+            kMinMeasurementLabelScale,
+            kMaxMeasurementLabelScale));
+        style.coordinateLabelScale = SnapToOneDecimal(ClampFloatRange(
+            style.coordinateLabelScale,
+            kMinMeasurementLabelScale,
+            kMaxMeasurementLabelScale));
+    };
+    clampCenterStyle(geometricCenterStyle_);
+    clampCenterStyle(centerOfMassStyle_);
+}
+
+void MeasurementStore::CaptureTextBaseFontSizes(MeasurementRecord& record) {
+    record.textBaseFontSizes.clear();
+    record.textBaseFontSizes.reserve(record.textActors.size());
+    for (const auto& actor : record.textActors) {
+        vtkTextProperty* property = TextPropertyFromActor(actor.GetPointer());
+        record.textBaseFontSizes.push_back(property != nullptr ? property->GetFontSize() : 0);
+    }
+}
+
+void MeasurementStore::ApplyStyle(MeasurementRecord& record) {
+    switch (record.type) {
+    case MeasurementType::Distance:
+        if (!record.actors.empty()) {
+            ApplyLineStyleToActor(record.actors[0].GetPointer(), distanceStyle_.lineColor, distanceStyle_.lineWidth);
+        }
+        if (!record.textActors.empty()) {
+            const int baseFontSize = !record.textBaseFontSizes.empty() ? record.textBaseFontSizes[0] : 21;
+            ApplyTextScaleToActor(record.textActors[0].GetPointer(), distanceStyle_.labelScale, baseFontSize);
+        }
+        break;
+    case MeasurementType::Angle:
+        for (size_t i = 0; i < std::min<size_t>(record.actors.size(), 3); ++i) {
+            ApplyLineStyleToActor(record.actors[i].GetPointer(), angleStyle_.lineColor, angleStyle_.lineWidth);
+        }
+        if (!record.textActors.empty()) {
+            const int baseFontSize = !record.textBaseFontSizes.empty() ? record.textBaseFontSizes[0] : 21;
+            ApplyTextScaleToActor(record.textActors[0].GetPointer(), angleStyle_.labelScale, baseFontSize);
+        }
+        break;
+    case MeasurementType::Dihedral:
+        for (size_t i = 0; i < std::min<size_t>(record.actors.size(), 3); ++i) {
+            ApplyLineStyleToActor(
+                record.actors[i].GetPointer(),
+                dihedralStyle_.baseLineColor,
+                dihedralStyle_.baseLineWidth);
+        }
+        if (record.actors.size() > 3 && record.actors[3] != nullptr) {
+            if (vtkProperty* property = record.actors[3]->GetProperty(); property != nullptr) {
+                property->SetColor(
+                    static_cast<double>(dihedralStyle_.helperPlane1Color[0]),
+                    static_cast<double>(dihedralStyle_.helperPlane1Color[1]),
+                    static_cast<double>(dihedralStyle_.helperPlane1Color[2]));
+                property->SetOpacity(static_cast<double>(dihedralStyle_.helperPlane1Opacity));
+                property->SetRepresentationToSurface();
+                property->SetEdgeVisibility(false);
+            }
+        }
+        if (record.actors.size() > 4 && record.actors[4] != nullptr) {
+            if (vtkProperty* property = record.actors[4]->GetProperty(); property != nullptr) {
+                property->SetColor(
+                    static_cast<double>(dihedralStyle_.helperPlane2Color[0]),
+                    static_cast<double>(dihedralStyle_.helperPlane2Color[1]),
+                    static_cast<double>(dihedralStyle_.helperPlane2Color[2]));
+                property->SetOpacity(static_cast<double>(dihedralStyle_.helperPlane2Opacity));
+                property->SetRepresentationToSurface();
+                property->SetEdgeVisibility(false);
+            }
+        }
+        if (!record.textActors.empty()) {
+            const int baseFontSize = !record.textBaseFontSizes.empty() ? record.textBaseFontSizes[0] : 21;
+            ApplyTextScaleToActor(record.textActors[0].GetPointer(), dihedralStyle_.labelScale, baseFontSize);
+        }
+        break;
+    case MeasurementType::GeometricCenter:
+    case MeasurementType::CenterOfMass: {
+        const CenterStyle& style = record.type == MeasurementType::CenterOfMass
+            ? centerOfMassStyle_
+            : geometricCenterStyle_;
+
+        if (!record.textActors.empty()) {
+            if (vtkTextProperty* property = TextPropertyFromActor(record.textActors[0].GetPointer());
+                property != nullptr) {
+                property->SetColor(
+                    static_cast<double>(style.centerPlusColor[0]),
+                    static_cast<double>(style.centerPlusColor[1]),
+                    static_cast<double>(style.centerPlusColor[2]));
+            }
+            const int baseFontSize = !record.textBaseFontSizes.empty() ? record.textBaseFontSizes[0] : 21;
+            ApplyTextScaleToActor(record.textActors[0].GetPointer(), style.centerPlusScale, baseFontSize);
+        }
+        if (record.textActors.size() > 1) {
+            const int baseFontSize = record.textBaseFontSizes.size() > 1 ? record.textBaseFontSizes[1] : 21;
+            ApplyTextScaleToActor(record.textActors[1].GetPointer(), style.coordinateLabelScale, baseFontSize);
+        }
+        for (size_t i = 2; i < record.textActors.size(); ++i) {
+            if (vtkTextProperty* property = TextPropertyFromActor(record.textActors[i].GetPointer());
+                property != nullptr) {
+                property->SetColor(
+                    static_cast<double>(style.selectedPlusColor[0]),
+                    static_cast<double>(style.selectedPlusColor[1]),
+                    static_cast<double>(style.selectedPlusColor[2]));
+            }
+            const int baseFontSize = i < record.textBaseFontSizes.size() ? record.textBaseFontSizes[i] : 21;
+            ApplyTextScaleToActor(record.textActors[i].GetPointer(), style.selectedPlusScale, baseFontSize);
+        }
+        break;
+    }
+    default:
+        break;
+    }
 }
 
 void MeasurementStore::ApplyVisibility(MeasurementRecord& record) {

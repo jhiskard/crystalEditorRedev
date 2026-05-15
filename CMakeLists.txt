@@ -67,6 +67,7 @@ set(SOURCES_CORE
   # vtk
   webassembly/src/core/vtk/vtk_viewer.cpp
   webassembly/src/core/vtk/vtk_viewer.h
+  webassembly/src/core/vtk/viewer_types.h
   webassembly/src/core/vtk/mouse_interactor.cpp
   webassembly/src/core/vtk/mouse_interactor.h
   webassembly/src/core/vtk/batch_update_system.cpp
@@ -118,6 +119,15 @@ set(SOURCES_CORE
 )
 
 set(SOURCES_FEATURES
+  # Phase 3.7: Viewer / Toolbar
+  webassembly/src/features/viewer/viewer_menu.cpp
+  webassembly/src/features/viewer/viewer_menu.h
+  webassembly/src/features/viewer/viewer_panel.cpp
+  webassembly/src/features/viewer/viewer_panel.h
+  webassembly/src/features/viewer/toolbar.cpp
+  webassembly/src/features/viewer/toolbar.h
+  webassembly/src/features/viewer/viewer_types.h
+
   # Phase 3.1: Utilities / Brillouin Zone
   webassembly/src/features/utilities/brillouin_zone/bz_plot.cpp
   webassembly/src/features/utilities/brillouin_zone/bz_plot.h

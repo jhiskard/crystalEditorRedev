@@ -3,6 +3,7 @@
 #include "core/data/element_database.h"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <map>
 #include <set>
@@ -15,6 +16,10 @@ float Distance(const std::array<float, 3>& lhs, const std::array<float, 3>& rhs)
     const float dy = rhs[1] - lhs[1];
     const float dz = rhs[2] - lhs[2];
     return std::sqrt(dx * dx + dy * dy + dz * dz);
+}
+
+bool IsBoundaryAtom(const core::scene::AtomRecord& atom) {
+    return atom.group == "Boundary";
 }
 
 } // namespace
@@ -41,6 +46,10 @@ void BondManager::RecomputeAll(int32_t structureId) {
         for (size_t j = i + 1; j < record->atoms.size(); ++j) {
             const core::scene::AtomRecord& atomA = record->atoms[i];
             const core::scene::AtomRecord& atomB = record->atoms[j];
+
+            if (IsBoundaryAtom(atomA) && IsBoundaryAtom(atomB)) {
+                continue;
+            }
 
             const std::string bondTypeKey = BuildBondTypeKey(atomA.symbol, atomB.symbol);
             const float threshold = GetOrCreateThreshold(bondTypeKey, atomA.symbol, atomB.symbol);

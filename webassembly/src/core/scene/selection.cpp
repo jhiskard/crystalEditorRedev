@@ -1,5 +1,7 @@
 ﻿#include "selection.h"
 
+#include <utility>
+
 namespace core::scene {
 
 void SelectionSet::SetEventBus(EventBus* eventBus) {
@@ -16,6 +18,14 @@ void SelectionSet::RemoveAtom(uint32_t atomId) {
     if (atoms_.erase(atomId) > 0) {
         notifySelectionChanged();
     }
+}
+
+void SelectionSet::SetAtoms(std::unordered_set<uint32_t> atomIds) {
+    if (atoms_ == atomIds) {
+        return;
+    }
+    atoms_ = std::move(atomIds);
+    notifySelectionChanged();
 }
 
 void SelectionSet::Clear() {

@@ -29,6 +29,7 @@ bool BuildAngleVisual(
     const core::scene::AtomRecord& atom1,
     const core::scene::AtomRecord& atom2,
     const core::scene::AtomRecord& atom3,
-    AngleVisual& visual);
+    AngleVisual& visual,
+    double arcRadiusScale = 1.0);
 
 } // namespace features::measurement

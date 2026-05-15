@@ -5,6 +5,7 @@
 #include "core/io/chgcar_parser.h"
 #include "core/io/file_dialog.h"
 #include "core/io/xsf_parser.h"
+#include "core/vtk/vtk_viewer.h"
 
 #include <emscripten/threading.h>
 
@@ -460,6 +461,9 @@ void StructureImportController::FinishSuccess(const std::string& filePath, const
 
     recentFiles_.Add(filePath);
     std::remove(filePath.c_str());
+    if (summary.structureId >= 0) {
+        core::vtk::VtkViewer::Instance().ResetView();
+    }
     ShowProgressPopup(false);
     if (!summary.warningMessage.empty()) {
         warningTitle_ = summary.warningTitle.empty() ? "Structure Import Notice" : summary.warningTitle;

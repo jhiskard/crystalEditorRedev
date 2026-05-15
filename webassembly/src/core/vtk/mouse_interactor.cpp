@@ -23,18 +23,23 @@ void MouseInteractor::SetActiveStructureId(int32_t structureId) {
     activeStructureId_ = structureId;
 }
 
+void MouseInteractor::SetDoubleClickHint(bool doubleClick) {
+    doubleClickHint_ = doubleClick;
+}
+
 void MouseInteractor::OnLeftButtonDown() {
     if (this->Interactor != nullptr) {
         const int* pos = this->Interactor->GetEventPosition();
         dragStartX_ = pos != nullptr ? pos[0] : 0;
         dragStartY_ = pos != nullptr ? pos[1] : 0;
-        additiveDrag_ = this->Interactor->GetShiftKey() != 0 || this->Interactor->GetControlKey() != 0;
+        selectionModifierDown_ = this->Interactor->GetControlKey() != 0;
+        additiveDrag_ = selectionModifierDown_;
     }
     leftButtonDown_ = true;
     dragging_ = false;
 
-    if (eventBus_ != nullptr) {
-        eventBus_->onSelectionChanged.Emit(core::scene::SelectionChangedEvent{});
+    if (selectionModifierDown_) {
+        return;
     }
     vtkInteractorStyleTrackballCamera::OnLeftButtonDown();
 }
@@ -50,6 +55,12 @@ void MouseInteractor::OnMouseMove() {
             }
         }
     }
+    if (selectionModifierDown_) {
+        if (requestRender_) {
+            requestRender_();
+        }
+        return;
+    }
     vtkInteractorStyleTrackballCamera::OnMouseMove();
 }
 
@@ -59,7 +70,7 @@ void MouseInteractor::OnLeftButtonUp() {
         const int x = pos != nullptr ? pos[0] : dragStartX_;
         const int y = pos != nullptr ? pos[1] : dragStartY_;
 
-        if (dragging_) {
+        if (selectionModifierDown_ && dragging_) {
             int viewportHeight = 0;
             if (vtkRenderWindow* window = this->Interactor->GetRenderWindow(); window != nullptr) {
                 const int* size = window->GetSize();
@@ -67,7 +78,6 @@ void MouseInteractor::OnLeftButtonUp() {
             }
             const bool additive =
                 additiveDrag_ ||
-                this->Interactor->GetShiftKey() != 0 ||
                 this->Interactor->GetControlKey() != 0;
             eventBus_->onDragSelection.Emit(core::scene::DragSelectionEvent{
                 activeStructureId_,
@@ -76,14 +86,24 @@ void MouseInteractor::OnLeftButtonUp() {
                 x,
                 y,
                 viewportHeight,
-                additive});
-        } else {
+                additive,
+                selectionModifierDown_});
+        } else if (!dragging_) {
             emitPickOrEmptyClick(x, y);
         }
     }
 
     leftButtonDown_ = false;
     dragging_ = false;
+    selectionModifierDown_ = false;
+    doubleClickHint_ = false;
+    if (additiveDrag_) {
+        additiveDrag_ = false;
+        if (requestRender_) {
+            requestRender_();
+        }
+        return;
+    }
     vtkInteractorStyleTrackballCamera::OnLeftButtonUp();
 }
 
@@ -118,7 +138,7 @@ void MouseInteractor::emitPickOrEmptyClick(int x, int y) {
     }
 
     if (renderer == nullptr) {
-        eventBus_->onEmptyClick.Emit(core::scene::EmptyClickEvent{activeStructureId_, x, y});
+        eventBus_->onEmptyClick.Emit(core::scene::EmptyClickEvent{activeStructureId_, x, y, selectionModifierDown_});
         return;
     }
 
@@ -126,7 +146,7 @@ void MouseInteractor::emitPickOrEmptyClick(int x, int y) {
     picker->SetTolerance(0.01);
     const int picked = picker->Pick(static_cast<double>(x), static_cast<double>(y), 0.0, renderer);
     if (picked == 0) {
-        eventBus_->onEmptyClick.Emit(core::scene::EmptyClickEvent{activeStructureId_, x, y});
+        eventBus_->onEmptyClick.Emit(core::scene::EmptyClickEvent{activeStructureId_, x, y, selectionModifierDown_});
         return;
     }
 
@@ -136,7 +156,9 @@ void MouseInteractor::emitPickOrEmptyClick(int x, int y) {
         activeStructureId_,
         {pickPos[0], pickPos[1], pickPos[2]},
         x,
-        y});
+        y,
+        selectionModifierDown_,
+        doubleClickHint_});
 }
 
 } // namespace core::vtk

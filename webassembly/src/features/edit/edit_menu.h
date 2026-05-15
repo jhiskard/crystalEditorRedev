@@ -28,4 +28,8 @@ void RenderWindows();
 void Tick(float dt);
 void Shutdown();
 
+bool IsBoundaryAtomsEnabled();
+void SetBoundaryAtomsEnabled(bool enabled);
+bool AlignCameraToCurrentCellAxis(int axisIndex);
+
 } // namespace features::edit

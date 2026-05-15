@@ -62,12 +62,15 @@ struct AtomPickedEvent {
     std::array<double, 3> pickPosition = {0.0, 0.0, 0.0};
     int screenX = 0;
     int screenY = 0;
+    bool selectionModifier = false;
+    bool doubleClick = false;
 };
 
 struct EmptyClickEvent {
     int32_t structureId = -1;
     int screenX = 0;
     int screenY = 0;
+    bool selectionModifier = false;
 };
 
 struct DragSelectionEvent {
@@ -78,6 +81,7 @@ struct DragSelectionEvent {
     int y1 = 0;
     int viewportHeight = 0;
     bool additive = false;
+    bool selectionModifier = false;
 };
 
 class EventBus {

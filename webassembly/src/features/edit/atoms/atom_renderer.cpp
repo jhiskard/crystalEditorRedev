@@ -21,6 +21,21 @@
 #include <unordered_set>
 
 namespace features::edit::atoms {
+namespace {
+
+void ApplyLegacyAtomShading(vtkProperty* property) {
+    if (property == nullptr) {
+        return;
+    }
+
+    property->SetAmbient(0.3);
+    property->SetDiffuse(0.7);
+    property->SetSpecular(0.1);
+    property->SetSpecularPower(10.0);
+    property->SetEdgeVisibility(false);
+}
+
+} // namespace
 
 AtomRenderer::AtomRenderer(core::scene::SceneState& scene)
     : scene_(scene) {
@@ -28,6 +43,7 @@ AtomRenderer::AtomRenderer(core::scene::SceneState& scene)
 
 AtomRenderer::~AtomRenderer() {
     ClearAllAtomGroups();
+    ClearAllSelectionShellActors();
     ClearAllAtomLabelActors();
 }
 
@@ -48,7 +64,8 @@ void AtomRenderer::Subscribe() {
         ClearStructure(event.structureId);
     });
     scene_.events.onSelectionChanged.Subscribe([this](const core::scene::SelectionChangedEvent&) {
-        OnAtomsChanged(scene_.currentStructureId);
+        SyncSelectionShellActors();
+        core::vtk::VtkViewer::Instance().RequestRender();
     });
 }
 
@@ -92,6 +109,7 @@ void AtomRenderer::UpdateAtomGroup(int32_t structureId, const std::string& symbo
                 core::vtk::VtkViewer::Instance().RemoveActor(it->second.actor);
             }
             atomGroups_.erase(it);
+            SyncSelectionShellActors();
         }
         return;
     }
@@ -118,6 +136,7 @@ void AtomRenderer::ClearAtomGroup(const std::string& symbol) {
         core::vtk::VtkViewer::Instance().RemoveActor(it->second.actor);
     }
     atomGroups_.erase(it);
+    SyncSelectionShellActors();
     core::vtk::VtkViewer::Instance().RequestRender();
 }
 
@@ -129,6 +148,7 @@ void AtomRenderer::ClearAllAtomGroups() {
         }
     }
     atomGroups_.clear();
+    ClearAllSelectionShellActors();
     core::vtk::VtkViewer::Instance().RequestRender();
 }
 
@@ -144,6 +164,7 @@ void AtomRenderer::SetAtomGroupVisible(const std::string& symbol, bool visible) 
     if (it->second.actor != nullptr) {
         it->second.actor->SetVisibility(visible ? 1 : 0);
         it->second.visible = visible;
+        SyncSelectionShellActors();
         core::vtk::VtkViewer::Instance().RequestRender();
     }
 }
@@ -156,6 +177,7 @@ void AtomRenderer::SetAllAtomGroupsVisible(bool visible) {
             group.actor->SetVisibility(visible ? 1 : 0);
         }
     }
+    SyncSelectionShellActors();
     core::vtk::VtkViewer::Instance().RequestRender();
 }
 
@@ -302,6 +324,7 @@ void AtomRenderer::RebuildStructure(int32_t structureId) {
         }
     }
 
+    SyncSelectionShellActors();
     core::vtk::VtkViewer::Instance().RequestRender();
 }
 
@@ -318,6 +341,7 @@ void AtomRenderer::ClearStructure(int32_t structureId) {
             ++it;
         }
     }
+    SyncSelectionShellActors();
     core::vtk::VtkViewer::Instance().RequestRender();
 }
 
@@ -355,6 +379,7 @@ void AtomRenderer::EnsureGroupInitialized(const std::string& groupKey, float rad
     group.actor->SetPickable(true);
     group.actor->SetVisibility(group.visible ? 1 : 0);
     group.actor->GetProperty()->SetOpacity(1.0);
+    ApplyLegacyAtomShading(group.actor->GetProperty());
 
     core::vtk::VtkViewer::Instance().AddActor(group.actor);
 }
@@ -387,7 +412,7 @@ void AtomRenderer::UpdateGroupData(
             static_cast<double>(atom->cartesian[1]),
             static_cast<double>(atom->cartesian[2]));
 
-        const float radiusScale = std::max(0.001f, atom->radius);
+        const float radiusScale = std::max(0.001f, atom->radius * 0.5f);
         scales->InsertNextValue(radiusScale);
     }
 
@@ -404,31 +429,83 @@ void AtomRenderer::UpdateGroupData(
     float g = std::clamp(color.g, 0.0f, 1.0f);
     float b = std::clamp(color.b, 0.0f, 1.0f);
 
-    bool selectedInGroup = false;
-    bool hoveredInGroup = false;
-    for (const core::scene::AtomRecord* atom : atoms) {
-        if (atom == nullptr) {
-            continue;
-        }
-        if (atom->selected || scene_.selection.ContainsAtom(atom->id)) {
-            selectedInGroup = true;
-        }
-        if (scene_.hover.hasHover && scene_.hover.atomId == atom->id) {
-            hoveredInGroup = true;
-        }
-    }
-
-    if (selectedInGroup) {
-        r = 1.0f;
-        g = 0.95f;
-        b = 0.20f;
-    } else if (hoveredInGroup) {
-        r = 0.20f;
-        g = 0.95f;
-        b = 1.0f;
-    }
-
     group.actor->GetProperty()->SetColor(r, g, b);
+    ApplyLegacyAtomShading(group.actor->GetProperty());
+}
+
+vtkSmartPointer<vtkActor> AtomRenderer::MakeSelectionShellActor(const core::scene::AtomRecord& atom) const {
+    const double shellRadius = static_cast<double>(std::max(0.01f, atom.radius * 0.5f + 0.01f));
+
+    vtkSmartPointer<vtkSphereSource> sphere = vtkSmartPointer<vtkSphereSource>::New();
+    sphere->SetRadius(shellRadius);
+    sphere->SetThetaResolution(24);
+    sphere->SetPhiResolution(24);
+    sphere->Update();
+
+    vtkSmartPointer<vtkPolyDataMapper> mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+    mapper->SetInputConnection(sphere->GetOutputPort());
+    mapper->ScalarVisibilityOff();
+
+    vtkSmartPointer<vtkActor> actor = vtkSmartPointer<vtkActor>::New();
+    actor->SetMapper(mapper);
+    actor->SetPosition(
+        static_cast<double>(atom.cartesian[0]),
+        static_cast<double>(atom.cartesian[1]),
+        static_cast<double>(atom.cartesian[2]));
+    actor->SetPickable(false);
+    actor->SetVisibility(1);
+
+    if (vtkProperty* property = actor->GetProperty(); property != nullptr) {
+        property->SetRepresentationToWireframe();
+        property->SetColor(1.0, 1.0, 0.0);
+        property->SetLineWidth(2.0);
+        property->SetAmbient(1.0);
+        property->SetDiffuse(0.0);
+        property->SetSpecular(0.0);
+        property->SetEdgeVisibility(false);
+    }
+
+    return actor;
+}
+
+void AtomRenderer::SyncSelectionShellActors() {
+    ClearAllSelectionShellActors();
+
+    for (const auto& [structureId, record] : scene_.structureRecords) {
+        for (const core::scene::AtomRecord& atom : record.atoms) {
+            const bool selected = atom.selected || scene_.selection.ContainsAtom(atom.id);
+            if (!selected || !atom.visible || !IsAtomGroupVisible(structureId, atom.symbol)) {
+                continue;
+            }
+
+            vtkSmartPointer<vtkActor> shell = MakeSelectionShellActor(atom);
+            if (shell == nullptr) {
+                continue;
+            }
+
+            core::vtk::VtkViewer::Instance().AddActor(shell);
+            selectionShells_.emplace(atom.id, shell);
+        }
+    }
+}
+
+void AtomRenderer::ClearAllSelectionShellActors() {
+    for (auto& [atomId, actor] : selectionShells_) {
+        (void)atomId;
+        if (actor != nullptr) {
+            core::vtk::VtkViewer::Instance().RemoveActor(actor);
+        }
+    }
+    selectionShells_.clear();
+}
+
+bool AtomRenderer::IsAtomGroupVisible(int32_t structureId, const std::string& symbol) const {
+    const std::string groupKey = BuildGroupKey(structureId, symbol);
+    auto it = atomGroups_.find(groupKey);
+    if (it == atomGroups_.end()) {
+        return true;
+    }
+    return it->second.visible;
 }
 
 } // namespace features::edit::atoms

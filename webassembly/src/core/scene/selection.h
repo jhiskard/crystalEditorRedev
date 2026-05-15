@@ -13,6 +13,7 @@ public:
 
     void AddAtom(uint32_t atomId);
     void RemoveAtom(uint32_t atomId);
+    void SetAtoms(std::unordered_set<uint32_t> atomIds);
     void Clear();
     bool ContainsAtom(uint32_t atomId) const;
     const std::unordered_set<uint32_t>& Atoms() const;

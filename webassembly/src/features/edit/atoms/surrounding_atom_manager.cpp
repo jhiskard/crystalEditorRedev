@@ -4,19 +4,103 @@
 
 #include <algorithm>
 #include <array>
+#include <vector>
 
 namespace features::edit::atoms {
 namespace {
 
-std::vector<int> BuildAxisShifts(float fractionalCoord, float threshold) {
-    std::vector<int> shifts = {0};
-    if (fractionalCoord <= threshold) {
-        shifts.push_back(1);
+using Vector3 = std::array<float, 3>;
+using CellMatrix = std::array<std::array<float, 3>, 3>;
+
+struct BoundaryTranslation {
+    Vector3 fractionalShift = {0.0f, 0.0f, 0.0f};
+    Vector3 cartesianShift = {0.0f, 0.0f, 0.0f};
+};
+
+Vector3 Scale(const Vector3& value, float scale) {
+    return {value[0] * scale, value[1] * scale, value[2] * scale};
+}
+
+Vector3 Add(const Vector3& lhs, const Vector3& rhs) {
+    return {lhs[0] + rhs[0], lhs[1] + rhs[1], lhs[2] + rhs[2]};
+}
+
+BoundaryTranslation MakeTranslation(const CellMatrix& matrix, int aShift, int bShift, int cShift) {
+    Vector3 cartesian = {0.0f, 0.0f, 0.0f};
+    if (aShift != 0) {
+        cartesian = Add(cartesian, Scale(matrix[0], static_cast<float>(aShift)));
     }
-    if (fractionalCoord >= (1.0f - threshold)) {
-        shifts.push_back(-1);
+    if (bShift != 0) {
+        cartesian = Add(cartesian, Scale(matrix[1], static_cast<float>(bShift)));
     }
-    return shifts;
+    if (cShift != 0) {
+        cartesian = Add(cartesian, Scale(matrix[2], static_cast<float>(cShift)));
+    }
+
+    return BoundaryTranslation{
+        {static_cast<float>(aShift), static_cast<float>(bShift), static_cast<float>(cShift)},
+        cartesian,
+    };
+}
+
+void PushIf(
+    std::vector<BoundaryTranslation>& translations,
+    bool condition,
+    const CellMatrix& matrix,
+    int aShift,
+    int bShift,
+    int cShift) {
+    if (condition) {
+        translations.push_back(MakeTranslation(matrix, aShift, bShift, cShift));
+    }
+}
+
+std::vector<BoundaryTranslation> BuildLegacyBoundaryTranslations(
+    const Vector3& fractional,
+    const CellMatrix& matrix,
+    float threshold) {
+    const bool needsAPositive = fractional[0] <= threshold;
+    const bool needsANegative = fractional[0] >= (1.0f - threshold);
+    const bool needsBPositive = fractional[1] <= threshold;
+    const bool needsBNegative = fractional[1] >= (1.0f - threshold);
+    const bool needsCPositive = fractional[2] <= threshold;
+    const bool needsCNegative = fractional[2] >= (1.0f - threshold);
+
+    std::vector<BoundaryTranslation> translations;
+    translations.reserve(26);
+
+    PushIf(translations, needsAPositive, matrix, 1, 0, 0);
+    PushIf(translations, needsANegative, matrix, -1, 0, 0);
+    PushIf(translations, needsBPositive, matrix, 0, 1, 0);
+    PushIf(translations, needsBNegative, matrix, 0, -1, 0);
+    PushIf(translations, needsCPositive, matrix, 0, 0, 1);
+    PushIf(translations, needsCNegative, matrix, 0, 0, -1);
+
+    PushIf(translations, needsAPositive && needsBPositive, matrix, 1, 1, 0);
+    PushIf(translations, needsAPositive && needsBNegative, matrix, 1, -1, 0);
+    PushIf(translations, needsANegative && needsBPositive, matrix, -1, 1, 0);
+    PushIf(translations, needsANegative && needsBNegative, matrix, -1, -1, 0);
+
+    PushIf(translations, needsBPositive && needsCPositive, matrix, 0, 1, 1);
+    PushIf(translations, needsBPositive && needsCNegative, matrix, 0, 1, -1);
+    PushIf(translations, needsBNegative && needsCPositive, matrix, 0, -1, 1);
+    PushIf(translations, needsBNegative && needsCNegative, matrix, 0, -1, -1);
+
+    PushIf(translations, needsAPositive && needsCPositive, matrix, 1, 0, 1);
+    PushIf(translations, needsAPositive && needsCNegative, matrix, 1, 0, -1);
+    PushIf(translations, needsANegative && needsCPositive, matrix, -1, 0, 1);
+    PushIf(translations, needsANegative && needsCNegative, matrix, -1, 0, -1);
+
+    PushIf(translations, needsAPositive && needsBPositive && needsCPositive, matrix, 1, 1, 1);
+    PushIf(translations, needsAPositive && needsBPositive && needsCNegative, matrix, 1, 1, -1);
+    PushIf(translations, needsAPositive && needsBNegative && needsCPositive, matrix, 1, -1, 1);
+    PushIf(translations, needsAPositive && needsBNegative && needsCNegative, matrix, 1, -1, -1);
+    PushIf(translations, needsANegative && needsBPositive && needsCPositive, matrix, -1, 1, 1);
+    PushIf(translations, needsANegative && needsBPositive && needsCNegative, matrix, -1, 1, -1);
+    PushIf(translations, needsANegative && needsBNegative && needsCPositive, matrix, -1, -1, 1);
+    PushIf(translations, needsANegative && needsBNegative && needsCNegative, matrix, -1, -1, -1);
+
+    return translations;
 }
 
 } // namespace
@@ -54,7 +138,7 @@ void SurroundingAtomManager::Recompute(int32_t structureId) {
     constexpr float kBoundaryThreshold = 0.1f;
 
     std::vector<core::scene::AtomRecord> generatedAtoms;
-    generatedAtoms.reserve(record.atoms.size() * 8);
+    generatedAtoms.reserve(record.atoms.size() * 26);
 
     for (const auto& atom : record.atoms) {
         if (atom.group == "Boundary" || atom.id == 0) {
@@ -63,31 +147,21 @@ void SurroundingAtomManager::Recompute(int32_t structureId) {
 
         const std::array<float, 3> frac =
             features::build::periodic_table::CartesianToFractional(atom.cartesian, record.cell.matrix);
-        const auto xs = BuildAxisShifts(frac[0], kBoundaryThreshold);
-        const auto ys = BuildAxisShifts(frac[1], kBoundaryThreshold);
-        const auto zs = BuildAxisShifts(frac[2], kBoundaryThreshold);
+        const auto translations =
+            BuildLegacyBoundaryTranslations(frac, record.cell.matrix, kBoundaryThreshold);
 
-        for (int dx : xs) {
-            for (int dy : ys) {
-                for (int dz : zs) {
-                    if (dx == 0 && dy == 0 && dz == 0) {
-                        continue;
-                    }
-
-                    core::scene::AtomRecord image = atom;
-                    image.id = scene_.nextAtomId++;
-                    image.group = "Boundary";
-                    image.selected = false;
-                    image.fractional = {
-                        frac[0] + static_cast<float>(dx),
-                        frac[1] + static_cast<float>(dy),
-                        frac[2] + static_cast<float>(dz),
-                    };
-                    image.cartesian =
-                        features::build::periodic_table::FractionalToCartesian(image.fractional, record.cell.matrix);
-                    generatedAtoms.push_back(image);
-                }
-            }
+        for (const auto& translation : translations) {
+            core::scene::AtomRecord image = atom;
+            image.id = scene_.nextAtomId++;
+            image.group = "Boundary";
+            image.selected = false;
+            image.fractional = {
+                frac[0] + translation.fractionalShift[0],
+                frac[1] + translation.fractionalShift[1],
+                frac[2] + translation.fractionalShift[2],
+            };
+            image.cartesian = Add(atom.cartesian, translation.cartesianShift);
+            generatedAtoms.push_back(image);
         }
     }
 

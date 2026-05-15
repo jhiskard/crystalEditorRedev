@@ -1,6 +1,6 @@
 /**
  * @file features/edit/bonds/bond_renderer.h
- * @brief Bond actor renderer split from legacy vtk renderer.
+ * @brief Bond actor renderer for edit feature scenes.
  */
 #pragma once
 
@@ -65,7 +65,9 @@ private:
     static std::pair<int32_t, std::string> ParseGroupKey(const std::string& groupKey);
     static std::pair<vtkSmartPointer<vtkTransform>, vtkSmartPointer<vtkTransform>> BuildHalfBondTransforms(
         const std::array<float, 3>& pointA,
-        const std::array<float, 3>& pointB);
+        const std::array<float, 3>& pointB,
+        float radius1,
+        float radius2);
 
     const core::scene::AtomRecord* FindAtomById(const core::scene::StructureRecord& record, uint32_t atomId) const;
     void OnBondsChanged(int32_t structureId);

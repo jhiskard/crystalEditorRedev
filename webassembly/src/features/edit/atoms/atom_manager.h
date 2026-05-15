@@ -9,6 +9,7 @@
 #include <array>
 #include <cstdint>
 #include <string>
+#include <unordered_set>
 
 namespace features::edit::atoms {
 
@@ -22,6 +23,7 @@ public:
     bool MoveFractional(int32_t structureId, uint32_t atomId, const std::array<float, 3>& fractional);
     bool SetVisible(int32_t structureId, uint32_t atomId, bool visible);
     bool SetSelected(int32_t structureId, uint32_t atomId, bool selected);
+    int SetSelectionByIds(int32_t structureId, const std::unordered_set<uint32_t>& selectedIds, bool additive);
     bool SetSymbol(int32_t structureId, uint32_t atomId, const std::string& symbol);
     bool SetRadius(int32_t structureId, uint32_t atomId, float radius);
     bool SetGroup(int32_t structureId, uint32_t atomId, const std::string& group);
@@ -44,4 +46,3 @@ private:
 };
 
 } // namespace features::edit::atoms
-

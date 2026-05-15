@@ -1,6 +1,6 @@
 /**
  * @file features/edit/atoms/atom_renderer.h
- * @brief Atom actor renderer split from legacy vtk renderer.
+ * @brief Atom actor renderer for edit feature scenes.
  */
 #pragma once
 
@@ -72,9 +72,14 @@ private:
         const std::string& groupKey,
         const std::vector<const core::scene::AtomRecord*>& atoms,
         const core::data::Color4f& color);
+    vtkSmartPointer<vtkActor> MakeSelectionShellActor(const core::scene::AtomRecord& atom) const;
+    void SyncSelectionShellActors();
+    void ClearAllSelectionShellActors();
+    bool IsAtomGroupVisible(int32_t structureId, const std::string& symbol) const;
 
     core::scene::SceneState& scene_;
     std::unordered_map<std::string, AtomGroupVTKData> atomGroups_;
+    std::unordered_map<uint32_t, vtkSmartPointer<vtkActor>> selectionShells_;
     std::unordered_map<uint32_t, vtkSmartPointer<vtkActor2D>> atomLabelActors_;
     bool subscribed_ = false;
 };
